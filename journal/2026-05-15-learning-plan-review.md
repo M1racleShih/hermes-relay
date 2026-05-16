@@ -54,3 +54,14 @@ This session produced a design note instead of code or tests: `notes/design/lear
 ## Next Step
 
 Read `tools/registry.py`, `model_tools.py`, and `toolsets.py` together for Phase 1, but keep the artifact small: one dispatch diagram, one source note, and one runnable or testable observation.
+
+## Addendum: Autonomous Learning Agent
+
+Follow-up question: whether the current plan is enough for an agent to execute learning phases while the user rests.
+
+Conclusion: the learning plan is mostly suitable, but `AGENTS.md` needed stronger unattended-execution rules. The missing pieces were bounded slice size, default no-source-change policy, stop conditions, explicit verification, and handoff format.
+
+Updated files:
+
+- `AGENTS.md`
+- `notes/design/learning-plan-review.md`

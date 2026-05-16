@@ -5,7 +5,7 @@ flowchart LR
     Client[ACP Client]
     Server[HermesACPAgent]
     Manager[SessionManager]
-    Worker[ThreadPoolExecutor]
+    Worker[ThreadPoolExecutor + contextvars]
     Agent[AIAgent]
     Events[ACP Event Bridge]
     Perm[Permission Bridge]
@@ -13,12 +13,12 @@ flowchart LR
     Client -->|new_session| Server
     Server --> Manager
     Client -->|prompt| Server
-    Server --> Worker
-    Worker --> Agent
+    Server -->|loop.run_in_executor| Worker
+    Worker -->|run_conversation| Agent
     Agent -->|callbacks| Events
-    Events -->|async notifications| Client
+    Events -->|conn.session_update| Client
     Agent -->|dangerous command approval| Perm
-    Perm -->|permission request| Client
+    Perm -->|conn.request_permission| Client
     Client -->|cancel| Server
     Server --> Manager
     Manager -->|cancel_event + agent.interrupt| Agent
