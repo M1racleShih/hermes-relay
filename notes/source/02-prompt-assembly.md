@@ -1,4 +1,14 @@
-# Prompt Layers
+# Prompt Assembly
+
+目标：理解 Hermes 如何把身份、工具指导、项目上下文、技能、记忆和临时 turn context 组合成 provider API messages。
+
+相关源码：
+
+- `run_agent.py`
+- `agent/prompt_builder.py`
+- `agent/prompt_caching.py`
+- `agent/skill_commands.py`
+- `tools/memory_tool.py`
 
 ```mermaid
 flowchart TB
@@ -42,3 +52,7 @@ flowchart TB
 - Honcho 不是当前 prompt 的静态层；源码中 Honcho toolset 已移除，相关能力现在更接近 memory provider/plugin 集成。
 - mid-session memory 写入更新磁盘，但通常不改变当前 session 已构建的 cached prompt，除非新 session 或强制 rebuild。
 - `ephemeral_system_prompt` 和当前 turn 的 user context 是 API-call-time 层，不等同于长期 cached system prompt。
+
+验证方式：
+
+- 对照 `run_agent.py::_build_system_prompt_parts()`、`_build_system_prompt()` 和 `agent/prompt_builder.py::build_context_files_prompt()`，确认每层是否进入 cached prompt。

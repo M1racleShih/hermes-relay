@@ -33,9 +33,8 @@ flowchart LR
 | artifact | 存放位置 | 标准 |
 |---|---|---|
 | 学习日志 | `journal/YYYY-MM-DD-*.md` | 记录本次目标、源码位置、结论、疑问、下一步 |
-| 源码笔记 | `notes/source/*.md` | 至少包含入口、关键函数、数据结构、调用链、风险点 |
-| Mermaid 图 | `docs/diagrams/*.md` | 流程性内容必须图示化 |
-| ADR/设计草案 | `notes/design/*.md` | 涉及架构选择时必须写决策记录 |
+| 源码笔记 | `notes/source/*.md` | 至少包含入口、关键函数、数据结构、调用链、风险点；源码流程图内嵌在同一笔记 |
+| ADR/设计草案 | `notes/design/*.md` | 涉及架构选择时必须写决策记录；设计/协议图内嵌在同一笔记 |
 | 验证动作 | commit / test / script | 每次学习至少一个可验证动作 |
 
 ## Phase 0：仓库定位与贡献边界
@@ -64,7 +63,6 @@ flowchart LR
 产出：
 
 - `notes/source/00-repo-map.md`
-- `docs/diagrams/00-hermes-system-map.md`
 - commit：`docs(repo): map hermes architecture and contribution boundaries`
 
 验收标准：
@@ -108,7 +106,6 @@ tests/test_*tool*.py
 产出：
 
 - `notes/source/01-tool-runtime.md`
-- `docs/diagrams/01-tool-dispatch-flow.md`
 - `notes/design/adr-001-tool-vs-skill.md`
 - commit：`docs(tools): document registry and dispatch lifecycle`
 
@@ -153,7 +150,6 @@ optional-skills/**/SKILL.md
 
 - `notes/source/02-prompt-assembly.md`
 - `skills/hermes-source-reading/SKILL.md`
-- `docs/diagrams/02-prompt-layers.md`
 - commit：`docs(prompt): map prompt layers and skill context flow`
 
 验收标准：
@@ -317,7 +313,6 @@ hermes_cli/gateway.py
 产出：
 
 - `notes/source/05-gateway-internals.md`
-- `docs/diagrams/05-gateway-message-flow.md`
 - `notes/design/adr-003-a2a-as-gateway-adapter-or-separate-adapter.md`
 - commit：`docs(gateway): analyze adapter and session routing flow`
 
@@ -365,7 +360,6 @@ toolsets.py
 产出：
 
 - `notes/source/06-acp-adapter.md`
-- `docs/diagrams/06-acp-bridge-flow.md`
 - `ROADMAP_A2A.md` 初版补全
 - commit：`docs(acp): derive adapter pattern for a2a design`
 
@@ -450,7 +444,6 @@ Hermes 映射重点：
 产出：
 
 - `notes/design/a2a-hermes-mapping.md`
-- `docs/diagrams/08-a2a-hermes-mapping.md`
 - commit：`docs(a2a): map protocol objects to hermes runtime`
 
 验收标准：

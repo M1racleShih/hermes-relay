@@ -28,7 +28,7 @@ Use this skill whenever the task is to understand a Hermes source file, subsyste
    - tests;
    - likely regression risks.
 4. Create or update a note in `notes/source/`.
-5. If the topic is a flow or state machine, create or update a Mermaid diagram in `docs/diagrams/`.
+5. If the topic is a flow or state machine, embed the Mermaid diagram in the same `notes/source/` note. If the diagram captures a design choice rather than source truth, put it in the relevant `notes/design/` note.
 6. Add a journal entry in `journal/`.
 7. Propose one verification command or test.
 

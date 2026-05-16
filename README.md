@@ -29,7 +29,7 @@ make open-plan
 然后按 `LEARNING_PLAN.md` 从 Phase 0 开始推进。每次学习都要求产出：
 
 1. 一份 session log；
-2. 一份源码阅读笔记或图；
+2. 一份源码阅读笔记或设计笔记，必要时在其中内嵌 Mermaid 图；
 3. 一个小 commit；
 4. 一个可验证动作：测试、脚本、复现、最小 patch、设计草案之一。
 
@@ -42,7 +42,7 @@ make open-plan
 ├── ROADMAP_A2A.md                 # 让 Hermes 支持 A2A 的实现路线
 ├── RULES.md                       # 学习与贡献规则
 ├── AGENTS.md                      # 给 Hermes/AI 助手的项目上下文
-├── docs/diagrams/                 # Mermaid 架构图
+├── docs/diagrams/                 # 旧 Mermaid 路径迁移索引
 ├── journal/                       # 每次学习记录
 ├── notes/source/                  # 源码精读笔记
 ├── notes/design/                  # 设计草案和 ADR
