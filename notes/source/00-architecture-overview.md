@@ -334,7 +334,7 @@ graph TB
         BATCH["Batch"]
     end
 
-    subgraph core_layer[""]
+    subgraph core_layer["执行内核"]
         CORE["AIAgent.run_conversation()"]
     end
 
