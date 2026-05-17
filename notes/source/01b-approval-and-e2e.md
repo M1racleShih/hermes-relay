@@ -1,6 +1,37 @@
 # 安全审批链 & Tool 端到端追踪
 
 > Phase 1 / 切片 1-2
+
+## 核心结论
+
+> Hermes 的安全审批是三层防护：hardline（无条件阻止）> sudo guard > dangerous patterns（需审批）。
+> 容器环境直接跳过审批。命令检测前做 ANSI/null/Unicode 归一化防混淆绕过。
+> 一个 tool 的完整旅程：注册 → toolset 暴露 → check_fn 过滤 → schema 下发 → LLM tool call → hook 链 → dispatch → result。
+
+## 推荐阅读路径
+
+```
+1. tools/approval.py — 先看 check_all_command_guards() (L1020)
+   → 这是主入口，理解三层防护的完整流程
+2. tools/approval.py — 再看 HARDLINE_PATTERNS 和 DANGEROUS_PATTERNS
+   → 理解哪些命令被阻止/需审批
+3. tools/terminal_tool.py — 看 check_terminal_requirements() (L2147)
+   → 理解 check_fn 如何探测不同环境
+4. 回到 01a 的端到端追踪 → 完整路径串联
+```
+
+## 重难点清单
+
+| # | 难点 | 源码位置 | 难度 | 说明 |
+|---|------|---------|------|------|
+| 1 | 命令归一化防混淆 | `approval.py:429-444` | ★★ | ANSI 剥离 + null 字节 + Unicode NFKC，防止绕过 |
+| 2 | 三层优先级 | `approval.py:1020+` | ★★ | hardline > sudo > yolo > dangerous，顺序不可调换 |
+| 3 | Modal 状态机 | `terminal_tool.py:2147+` | ★★★ | 最复杂的 check_fn，涉及 managed gateway / credentials / 订阅 |
+| 4 | Gateway 场景审批 | `approval.py` | ★★ | submit_pending → 等待 /approve，异步审批流程 |
+| 5 | Cron prompt injection 防护 | `cron/jobs.py` | ★★ | CronPromptInjectionBlocked，定时任务的输入净化 |
+
+---
+
 > 回答的问题：危险命令审批链如何工作？check_fn 在 terminal 场景探测什么？一个 tool 从注册到执行的完整路径？
 
 ## 危险命令审批系统 (`tools/approval.py`, 1369 行)

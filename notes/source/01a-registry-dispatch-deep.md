@@ -1,6 +1,36 @@
 # Tool Registry & Dispatch 深度切片
 
 > Phase 1 / 切片 1-1
+
+## 核心结论
+
+> ToolEntry 是 `__slots__` 优化的 11 字段数据结构，registry 是模块级单例。
+> 自发现用 AST 而非 import（避免副作用），注册时同名冲突检测区分 MCP 和非 MCP。
+> Dispatch 始终返回 JSON 字符串，异常在内部包装。
+
+## 推荐阅读路径
+
+```
+1. registry.py:77-106 (ToolEntry) → 建立数据结构心智模型
+2. registry.py:57-74 (discover_builtin_tools) → 理解自发现
+3. registry.py:234-288 (register) → 理解注册逻辑和冲突检测
+4. registry.py:320-367 (get_definitions) → 理解 schema 下发
+5. registry.py:373-390 (dispatch) → 理解执行路径
+6. model_tools.py:271-332 + 697-836 → 理解编排层如何使用 registry
+```
+
+## 重难点清单
+
+| # | 难点 | 源码位置 | 难度 | 说明 |
+|---|------|---------|------|------|
+| 1 | AST 检测函数 `_module_registers_tools` | `registry.py:42-54` | ★★ | 只看 module-body 级 register 调用，不检测函数体内 |
+| 2 | 同名冲突 MCP vs 非 MCP | `registry.py:250-272` | ★★ | MCP→MCP 允许覆盖（server 刷新），其他 REJECTED |
+| 3 | `_generation` 版本号 | `registry.py` | ★ | 每次 mutation +1，用于下游缓存失效 |
+| 4 | per-call check_fn 去重 | `registry.py:320-367` | ★ | 同一 pass 中重复 check_fn 只执行一次 |
+| 5 | 异步 handler 桥接 | `registry.py:373-390` | ★ | `is_async` → `_run_async()` 从 model_tools import |
+
+---
+
 > 回答的问题：ToolEntry 数据结构和 registry 的注册/查询/dispatch 内部机制是什么？
 
 ## 核心数据结构
