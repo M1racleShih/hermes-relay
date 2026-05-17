@@ -56,19 +56,27 @@ Anthropic 和 OpenAI 的 prompt cache 机制都是基于**前缀匹配**的—�
 
 ## 一、Prompt Assembly 在架构中的角色
 
-```
-                    ┌─────────────────────────────────────┐
-                    │        AIAgent (run_agent.py)        │
-                    │                                      │
-                    │  _build_system_prompt_parts()        │
-                    │     ├── STABLE 层 (10 个组件)        │
-                    │     ├── CONTEXT 层 (context files)   │
-                    │     └── VOLATILE 层 (memory + meta)  │
-                    │                                      │
-                    │  _build_system_prompt()               │
-                    │     └── join(stable, context, volatile)│
-                    │         → _cached_system_prompt      │
-                    └─────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph agent["AIAgent (run_agent.py)"]
+        BSP["_build_system_prompt_parts()"]
+        STABLE["STABLE 层<br/>10 个组件"]
+        CONTEXT["CONTEXT 层<br/>context files"]
+        VOLATILE["VOLATILE 层<br/>memory + meta"]
+        JOIN["_build_system_prompt()"]
+        CACHE["_cached_system_prompt"]
+    end
+
+    BSP --> STABLE
+    BSP --> CONTEXT
+    BSP --> VOLATILE
+    STABLE --> JOIN
+    CONTEXT --> JOIN
+    VOLATILE --> JOIN
+    JOIN --> CACHE
+
+    style agent fill:#0f3460,stroke:#e94560,color:#eee
+    style CACHE fill:#1b4332,stroke:#52b788,color:#eee
 ```
 
 Prompt Assembly 是 AIAgent 主循环（Phase 3）的**前置阶段**。在每条 LLM API 调用中，system prompt 从缓存中取出，拼接在 `messages[0]`。
@@ -154,30 +162,25 @@ flowchart LR
 
 ### 3.2 三层缓存架构
 
-```
-请求 build_skills_system_prompt()
-         │
-         ▼
-  ┌──────────────┐
-  │ Layer 1: LRU │ ← OrderedDict(max=8), key = (dir, tools, toolsets, platform, disabled)
-  │   命中?      │
-  └──┬───────┬───┘
-     │ Yes   │ No
-     ▼       ▼
-   返回   ┌────────────────────┐
-         │ Layer 2: Snapshot  │ ← .skills_prompt_snapshot.json
-         │ manifest 匹配?     │   manifest = {path: [mtime_ns, size]}
-         └──┬────────────┬────┘
-            │ Yes        │ No
-            ▼            ▼
-    从 snapshot     ┌──────────────────┐
-    恢复 + 过滤     │ Layer 3: 全量扫描 │
-                   │ 遍历所有 SKILL.md │
-                   │ 解析 frontmatter  │
-                   └────────┬─────────┘
-                            │
-                            ▼
-                   写 Snapshot + 存 LRU
+```mermaid
+graph TD
+    REQ["请求 build_skills_system_prompt()"]
+    
+    REQ --> LRU["Layer 1: LRU<br/>OrderedDict max=8<br/>key=(dir,tools,toolsets,platform,disabled)"]
+    LRU -->|"命中"| RET1["返回缓存结果"]
+    LRU -->|"未命中"| SNAP["Layer 2: Snapshot<br/>.skills_prompt_snapshot.json<br/>manifest={path: mtime_ns+size}"]
+    
+    SNAP -->|"manifest 匹配"| RESTORE["从 snapshot 恢复 + 过滤"]
+    SNAP -->|"不匹配"| SCAN["Layer 3: 全量扫描<br/>遍历所有 SKILL.md<br/>解析 frontmatter"]
+    
+    SCAN --> WRITE["写 Snapshot + 存 LRU"]
+    
+    RESTORE --> RET2["返回结果"]
+    WRITE --> RET3["返回结果"]
+
+    style LRU fill:#1b4332,stroke:#52b788,color:#eee
+    style SNAP fill:#0f3460,stroke:#e94560,color:#eee
+    style SCAN fill:#7f1d1d,stroke:#fca5a5,color:#eee
 ```
 
 ### 3.3 Skill 的运行时加载（/skill 命令）
