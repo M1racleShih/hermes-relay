@@ -10,49 +10,90 @@
 
 ## 一、分层架构图
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                     入口层 (Entry Points)                     │
-│  CLI(cli.py)  Gateway(gateway/run.py)  ACP(acp_adapter/)    │
-│  Cron(cron/scheduler.py)  Batch(batch_runner.py)  MCP        │
-└──────────────┬───────────────────┬──────────────┬────────────┘
-               │                   │              │
-               ▼                   ▼              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    编排层 (Orchestration)                      │
-│  HermesCLI — CLI 交互循环 / 命令分发 / Rich UI                │
-│  GatewayRunner — 多平台事件路由 / session 管理 / delivery      │
-│  HermesACPAgent — ACP 协议方法 → AIAgent 调用                │
-│  CronScheduler — 定时触发 → delivery → AIAgent               │
-└──────────────────────────┬───────────────────────────────────┘
-                           │
-                           ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    执行内核 (Execution Core)                   │
-│  AIAgent (run_agent.py, 16k LOC)                             │
-│  ┌──────────┬──────────┬───────────┬────────────────┐       │
-│  │ run_conv │ _invoke  │ _compress │ _persist       │       │
-│  │ ersation │ _tool    │ _context  │ _session       │       │
-│  └──────────┴──────────┴───────────┴────────────────┘       │
-│  IterationBudget · interrupt · fallback · streaming          │
-└──────────┬──────────────┬──────────────┬────────────────────┘
-           │              │              │
-           ▼              ▼              ▼
-┌────────────────┐ ┌─────────────┐ ┌──────────────────────────┐
-│ Prompt 层      │ │ Tool 层     │ │ 持久化层                 │
-│ prompt_builder │ │ model_tools │ │ hermes_state (SessionDB)  │
-│ skill_commands │ │ registry    │ │ context_compressor        │
-│ context files  │ │ toolsets    │ │ trajectory_compressor     │
-│ SOUL.md        │ │ approval    │ │ memory_tool               │
-│ .hermes.md     │ │ 73 tools    │ │ checkpoint_manager        │
-└────────────────┘ └──────┬──────┘ └──────────────────────────┘
-                          │
-                          ▼
-┌──────────────────────────────────────────────────────────────┐
-│                  后端扩展层 (Backends)                         │
-│  LLM Providers · Terminal Envs · Plugins · Skills · MCP     │
-│  (providers/, tools/environments/, plugins/, skills/)        │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph entry["🚪 入口层 Entry Points"]
+        CLI["CLI<br/>cli.py"]
+        GW["Gateway<br/>gateway/run.py"]
+        ACP["ACP<br/>acp_adapter/"]
+        CRON["Cron<br/>cron/scheduler.py"]
+        BATCH["Batch<br/>batch_runner.py"]
+        MCP["MCP"]
+    end
+
+    subgraph orchestrate["🎛️ 编排层 Orchestration"]
+        HermesCLI["HermesCLI<br/>CLI交互循环/命令分发/Rich UI"]
+        GatewayRunner["GatewayRunner<br/>多平台事件路由/session管理/delivery"]
+        HermesACPAgent["HermesACPAgent<br/>ACP协议方法 → AIAgent"]
+        CronScheduler["CronScheduler<br/>定时触发 → delivery → AIAgent"]
+    end
+
+    subgraph core["⚙️ 执行内核 Execution Core"]
+        AIAgent["AIAgent<br/>run_agent.py · 16k LOC"]
+        subgraph agent_methods["核心方法"]
+            run_conv["run_conversation()"]
+            invoke_tool["_invoke_tool()"]
+            compress["_compress_context()"]
+            persist["_persist_session()"]
+        end
+        budget["IterationBudget · interrupt<br/>fallback · streaming"]
+    end
+
+    subgraph prompt_layer["📝 Prompt 层"]
+        PB["prompt_builder"]
+        SC["skill_commands"]
+        CF["context files<br/>SOUL.md · .hermes.md"]
+    end
+
+    subgraph tool_layer["🔧 Tool 层"]
+        MT["model_tools"]
+        REG["registry"]
+        TS["toolsets"]
+        APPR["approval"]
+        TOOLS["73 tools"]
+    end
+
+    subgraph persist_layer["💾 持久化层"]
+        SSDB["hermes_state<br/>SessionDB"]
+        CC["context_compressor"]
+        TC["trajectory_compressor"]
+        MT2["memory_tool"]
+        CKPT["checkpoint_manager"]
+    end
+
+    subgraph backend["🔌 后端扩展层 Backends"]
+        LLM["LLM Providers"]
+        ENV["Terminal Envs"]
+        PLUGINS["Plugins"]
+        SKILLS["Skills"]
+        MCP2["MCP"]
+    end
+
+    CLI --> HermesCLI
+    GW --> GatewayRunner
+    ACP --> HermesACPAgent
+    CRON --> CronScheduler
+
+    HermesCLI --> AIAgent
+    GatewayRunner --> AIAgent
+    HermesACPAgent --> AIAgent
+    CronScheduler --> AIAgent
+    BATCH --> AIAgent
+
+    AIAgent --> prompt_layer
+    AIAgent --> tool_layer
+    AIAgent --> persist_layer
+
+    tool_layer --> backend
+
+    style entry fill:#1a1a2e,stroke:#e94560,color:#eee
+    style orchestrate fill:#16213e,stroke:#0f3460,color:#eee
+    style core fill:#0f3460,stroke:#e94560,color:#eee
+    style agent_methods fill:#1a1a2e,stroke:#533483,color:#eee
+    style prompt_layer fill:#1b4332,stroke:#52b788,color:#eee
+    style tool_layer fill:#7f1d1d,stroke:#fca5a5,color:#eee
+    style persist_layer fill:#312e81,stroke:#818cf8,color:#eee
+    style backend fill:#44403c,stroke:#a8a29e,color:#eee
 ```
 
 ---
@@ -130,50 +171,52 @@ batch_runner.py → 并行启动多个 AIAgent 实例 → 批量处理任务
 
 ## 三、一条请求的完整旅程（CLI 路径）
 
-```text
-1. 用户输入 "帮我分析一下这个 bug"
-       │
-2. HermesCLI.process_command() — 判断不是斜杠命令，是普通消息
-       │
-3. AIAgent.chat("帮我分析一下这个 bug")
-       │ 薄封装
-4. AIAgent.run_conversation(user_message, system_message, conversation_history)
-       │
-5. Prompt 组装：
-   ├─ prompt_builder.build_system_prompt() 加载 SOUL.md + MEMORY.md + USER.md + .hermes.md
-   ├─ skill_commands.build_skills_system_prompt() 加载 skill index
-   ├─ model_tools.get_tool_definitions() 解析 enabled/disabled toolsets → registry → tool schemas
-   └─ conversation_history (已有对话)
-       │
-6. API 调用：
-   ├─ client.chat.completions.create(model, messages, tools=tool_schemas)
-   ├─ 支持 streaming / non-streaming
-   └─ 支持 Anthropic native / OpenAI-compatible / Codex Responses / Gemini 多种 API mode
-       │
-7. 响应分支：
-   ├─ 普通文本 → 返回给用户
-   └─ tool_calls → 进入 tool 执行循环
-       │
-8. Tool 执行循环（可能多轮）：
-   ├─ AIAgent._invoke_tool(name, args)
-   │   ├─ agent-level tools (todo/memory/session_search/delegate_task) → 直接在 agent 内部处理
-   │   └─ 普通 tools → model_tools.handle_function_call(name, args)
-   │       ├─ coerce_tool_args() — 类型强转
-   │       ├─ pre_tool_call hook — 插件可拦截
-   │       ├─ registry.dispatch(name, args) — 执行 handler
-   │       ├─ post_tool_call hook
-   │       └─ transform_tool_result hook
-   ├─ tool result 追加到 messages
-   ├─ 回到步骤 6 继续调用 API
-   └─ 直到无 tool_calls 或超出 iteration budget
-       │
-9. 后处理：
-   ├─ _persist_session() — 写入 SessionDB (SQLite + FTS5)
-   ├─ _compress_context() — 上下文过长时触发压缩
-   ├─ _save_trajectory() — 保存对话轨迹（可选）
-   └─ memory 写入（可选）
-       │
-10. 最终响应返回给 HermesCLI → Rich 渲染 → 用户看到回复
+```mermaid
+graph TD
+    U["👤 用户输入"] --> CMD["HermesCLI.process_command()"]
+    CMD -->|"非斜杠命令"| CHAT["AIAgent.chat()"]
+    CHAT -->|"薄封装"| RC["run_conversation()"]
+
+    RC --> PROMPT["Prompt 组装"]
+    subgraph prompt_build["Prompt 组装"]
+        PB["prompt_builder.build_system_prompt()<br/>SOUL.md + MEMORY + USER.md + .hermes.md"]
+        SC["skill_commands.build_skills_system_prompt()<br/>skill index"]
+        MT["model_tools.get_tool_definitions()<br/>toolsets → registry → schemas"]
+        CH["conversation_history"]
+    end
+
+    PROMPT --> API["LLM API 调用<br/>Anthropic / OpenAI / Codex / Gemini"]
+
+    API -->|"纯文本"| RESP["返回响应给用户"]
+    API -->|"tool_calls"| TOOL["Tool 执行循环"]
+
+    subgraph tool_loop["Tool 执行循环（可能多轮）"]
+        IT["_invoke_tool(name, args)"]
+        IT -->|"agent-level<br/>todo/memory/search"| AGENT_T["Agent 内部直接处理"]
+        IT -->|"普通 tool"| MTH["model_tools.handle_function_call()"]
+        MTH --> COERCE["coerce_tool_args()"]
+        COERCE --> HOOKS["pre_tool_call hook"]
+        HOOKS --> DISP["registry.dispatch()"]
+        DISP --> POST["post_tool_call hook"]
+        POST --> TRANS["transform_tool_result hook"]
+    end
+
+    TOOL -->|"result 追加到 messages"| API
+
+    API -->|"无 tool_calls / budget 耗尽"| POST_PROC["后处理"]
+
+    subgraph post["后处理"]
+        PERS["_persist_session()<br/>SessionDB SQLite+FTS5"]
+        COMP["_compress_context()"]
+        TRAJ["_save_trajectory()"]
+        MEM["memory 写入"]
+    end
+
+    POST_PROC --> RICH["HermesCLI Rich 渲染 → 用户"]
+
+    style prompt_build fill:#1b4332,stroke:#52b788,color:#eee
+    style tool_loop fill:#7f1d1d,stroke:#fca5a5,color:#eee
+    style post fill:#312e81,stroke:#818cf8,color:#eee
 ```
 
 ---
@@ -278,22 +321,26 @@ batch_runner.py → 并行启动多个 AIAgent 实例 → 批量处理任务
 
 ## 七、A2A 在架构中的位置
 
-```text
-                    ┌─────────────────┐
-                    │  A2A Adapter    │  ← 需要新建
-                    │  (a2a_adapter/) │
-                    └────────┬────────┘
-                             │
-          与 ACP adapter 同级 │ 复用 AIAgent 核心循环
-                             │
-    ┌────────┬───────────────┼───────────────┬──────────┐
-    │ CLI    │ Gateway       │ ACP           │ Cron     │ Batch  │
-    └────────┴───────────────┴───────────────┴──────────┴────────┘
-                             │
-                    ┌────────▼────────┐
-                    │   AIAgent       │
-                    │ run_conversation│
-                    └─────────────────┘
+```mermaid
+graph TB
+    A2A["🔮 A2A Adapter<br/>a2a_adapter/ — 需要新建"]
+    A2A -->|"与 ACP adapter 同级<br/>复用 AIAgent 核心循环"| CORE
+
+    subgraph entries["现有入口"]
+        CLI["CLI"]
+        GW["Gateway"]
+        ACP["ACP"]
+        CRON["Cron"]
+        BATCH["Batch"]
+    end
+
+    subgraph core_layer[""]
+        CORE["AIAgent.run_conversation()"]
+    end
+
+    style A2A fill:#7f1d1d,stroke:#fca5a5,color:#eee
+    style entries fill:#1a1a2e,stroke:#e94560,color:#eee
+    style core_layer fill:#0f3460,stroke:#e94560,color:#eee
 ```
 
 **关键决策**：A2A adapter 不应从修改 `AIAgent` 主循环开始，而是像 ACP 一样作为独立适配层包住同步 AIAgent，暴露 HTTP+JSON 协议服务。
@@ -302,33 +349,83 @@ batch_runner.py → 并行启动多个 AIAgent 实例 → 批量处理任务
 
 ## 八、推荐的全局源码阅读路径
 
+> 从整体到局部，按依赖深度渐进。每个阶段先看笔记建立全貌，再按推荐顺序啃源码。
+
 ```
-Phase 0: 00-architecture-overview.md（本文档）
-  ↓ 建立全貌
-Phase 1: Tool System
-  阅读顺序：tools/registry.py → model_tools.py → toolsets.py → tools/approval.py → tools/terminal_tool.py
-  理由：最容易形成"源码→行为→测试"闭环
+Step 0: 架构总览（本文档）
+  目标：理解 5 种入口形态、分层架构、核心不变量
   ↓
-Phase 2: Prompt Assembly
+
+Step 1: Tool System ← 最容易形成「源码→行为→测试」闭环
+  笔记：01-tool-system-full-chain.md
+  阅读顺序：tools/registry.py → model_tools.py → toolsets.py → tools/approval.py → tools/terminal_tool.py
+  ↓
+
+Step 2: Prompt Assembly ← 理解 system prompt 是怎么组装出来的
+  笔记：02-prompt-assembly.md
   阅读顺序：agent/prompt_builder.py → agent/skill_commands.py → tools/memory_tool.py → skills/*/SKILL.md
   ↓
-Phase 3: AIAgent Turn Lifecycle
+
+Step 3: AIAgent Turn Lifecycle ← 16k LOC 核心，按调用链切片
   阅读顺序：run_agent.py:__init__ → chat() → run_conversation() → _invoke_tool() → _compress_context() → _persist_session()
-  注意：16k LOC 不要线性读，按调用链切片
+  注意：不要线性读，按调用链切片
   ↓
-Phase 4: SessionDB / Memory / Compression
+
+Step 4: SessionDB / Memory / Compression
   阅读顺序：hermes_state.py → agent/context_compressor.py → tools/memory_tool.py
   ↓
-Phase 5: Gateway
+
+Step 5: Gateway
   阅读顺序：gateway/platforms/base.py → gateway/platforms/webhook.py → gateway/run.py → gateway/delivery.py → gateway/session.py
   ↓
-Phase 6: ACP Adapter（A2A 直接参考）
+
+Step 6: ACP Adapter（A2A 直接参考对象）
   阅读顺序：acp_adapter/entry.py → acp_adapter/server.py → acp_adapter/session.py → acp_adapter/tools.py → acp_adapter/permissions.py
 ```
 
 ---
 
-## 九、下一步
+## 九、重难点清单
 
-- Phase 1 的 Module Orientation 和 Reading Guide 见 `01-tool-system-overview.md`
+| # | 难点 | 源码位置 | 难度 | 说明 |
+|---|------|---------|------|------|
+| 1 | AIAgent.run_conversation() 主循环状态机 | `run_agent.py` | ★★★ | 16k LOC 单体，含 streaming/tool loop/compression/fallback/interrupt 交织，非线性逻辑。需要按调用链切片逐个理解，切忌从头读到尾 |
+| 2 | Tool 注册的 AST 自发现机制 | `tools/registry.py` | ★★ | import 时触发 top-level `registry.register()`，AST 级参数提取而非运行时反射。理解为什么用 AST 而非 import 是关键 |
+| 3 | Prompt 分层组装的优先级体系 | `agent/prompt_builder.py` | ★★ | stable/context/volatile 三层 + context file priority (.hermes.md > AGENTS.md > ...)，叠加 prompt_caching 标记。优先级规则决定最终 LLM 看到什么 |
+| 4 | Gateway 多路复用与 Session 路由 | `gateway/run.py` | ★★ | 异步多路事件、session key 路由、active-agent guard、hook 执行。20+ 平台适配器的生命周期管理 |
+| 5 | ACP 同步/异步桥接 | `acp_adapter/server.py` | ★★ | AIAgent 在 worker thread 中同步运行，通过 asyncio.run_coroutine_threadsafe 转为异步事件。stdout/stderr 分离。理解这个桥接是理解 ACP 的核心 |
+| 6 | Tool 审批链与安全模型 | `tools/approval.py` | ★★ | 1369 行，四级审批（auto/suggest/confirm/deny），动态环境检测（Docker/SSH/Modal），与 platform 的 permission 映射 |
+| 7 | Context Compression 策略 | `agent/context_compressor.py` | ★ | 1583 行，多种压缩策略（summary/trim/trajectory），何时触发、如何保留关键信息 |
+| 8 | Toolset resolve 递归展开 | `toolsets.py` | ★ | composite toolset 可以嵌套引用，resolve 时递归展开。理解递归终止条件和平台 preset 覆盖 |
+
+---
+
+## 十、设计意图（Why）
+
+**Q: 为什么 `run_agent.py` 是 16k LOC 的单体文件，不拆分？**
+
+AIAgent 是 Hermes 的执行内核，核心方法之间共享大量实例状态（messages、tool registry、session、compression state）。拆成独立类会增加状态传递复杂度，而 Python 的 module 本身就是天然的命名空间。实际阅读时按调用链切片（chat → run_conversation → _invoke_tool），不需要从头到尾线性读。
+
+**Q: 为什么 Tool 注册用 AST 而不是直接 import 调用？**
+
+AST 自发现允许在 import 阶段提取 handler 的参数签名和 docstring，生成精确的 tool schema，无需运行时反射或手写 JSON Schema。代价是注册代码不能有运行时动态逻辑，必须在 top-level 直接调用 `registry.register()`。
+
+**Q: 为什么 `model_tools.py` 是 AIAgent 和 Tool 系统之间的唯一中介？**
+
+解耦。AIAgent 不直接访问 registry，所有 tool discovery、schema 下发、dispatch 编排、hook 链都经过 model_tools。这样 registry 的内部结构变化不会影响 AIAgent，反之亦然。
+
+**Q: 为什么 ACP adapter 用同步 AIAgent + asyncio bridge 而不是全异步？**
+
+AIAgent.run_conversation() 内部使用了阻塞 I/O（SQLite 写入、文件操作、subprocess 调用）。改为全异步意味着重写整个内核。ACP 的做法是在 worker thread 中同步跑 AIAgent，通过 `asyncio.run_coroutine_threadsafe()` 桥接到 asyncio 事件循环。这是最务实的方案——不改内核就能适配异步协议。
+
+**Q: 为什么有 5 种独立的运行形态而不是统一入口？**
+
+不同使用场景的约束差异大：CLI 需要交互式 prompt_toolkit，Gateway 需要异步多路复用，ACP 需要 JSON-RPC stdio，Cron 需要无人值守 + delivery，Batch 需要并行。强行统一入口会增加不必要的抽象层。当前设计是共享内核（AIAgent），各自适配（5 个入口）。
+
+---
+
+## 十一、下一步
+
+- Tool System 全链路详解见 `01-tool-system-full-chain.md`
+- Prompt Assembly 详解见 `02-prompt-assembly.md`
 - 代码证据索引见 `00-source-file-index.md`
