@@ -42,10 +42,10 @@ flowchart LR
 产出文件：
 
 - `docs/diagrams/README.md`
-- `notes/source/00-repo-map.md`
-- `notes/source/01-tool-runtime.md`
+- `notes/source/00-architecture-overview.md`
+- `notes/source/01-tool-system-overview.md`
 - `notes/source/02-prompt-assembly.md`
-- `notes/source/03-agent-loop.md`
+- `notes/source/03-agent-turn-lifecycle.md`
 - `notes/source/05-gateway-internals.md`
 - `notes/source/06-acp-adapter.md`
 - `notes/design/a2a-hermes-mapping.md`

@@ -62,7 +62,7 @@ flowchart LR
 
 产出：
 
-- `notes/source/00-repo-map.md`
+- `notes/source/00-architecture-overview.md`
 - commit：`docs(repo): map hermes architecture and contribution boundaries`
 
 验收标准：
@@ -105,7 +105,7 @@ tests/test_*tool*.py
 
 产出：
 
-- `notes/source/01-tool-runtime.md`
+- `notes/source/01-tool-system-overview.md`
 - `notes/design/adr-001-tool-vs-skill.md`
 - commit：`docs(tools): document registry and dispatch lifecycle`
 
@@ -223,7 +223,7 @@ sequenceDiagram
 
 产出：
 
-- `notes/source/03-agent-loop.md`
+- `notes/source/03-agent-turn-lifecycle.md`
 - `checklists/agent-loop-invariants.md`
 - commit：`docs(agent): document turn lifecycle and invariants`
 

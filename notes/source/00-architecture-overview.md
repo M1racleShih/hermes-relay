@@ -303,7 +303,7 @@ batch_runner.py → 并行启动多个 AIAgent 实例 → 批量处理任务
 ## 八、推荐的全局源码阅读路径
 
 ```
-Phase 0: 00-repo-map.md（本文档）
+Phase 0: 00-architecture-overview.md（本文档）
   ↓ 建立全貌
 Phase 1: Tool System
   阅读顺序：tools/registry.py → model_tools.py → toolsets.py → tools/approval.py → tools/terminal_tool.py
@@ -330,5 +330,5 @@ Phase 6: ACP Adapter（A2A 直接参考）
 
 ## 九、下一步
 
-- Phase 1 的 Module Orientation 和 Reading Guide 见 `01-tool-runtime.md`
-- 代码证据索引见 `00-code-evidence-index.md`
+- Phase 1 的 Module Orientation 和 Reading Guide 见 `01-tool-system-overview.md`
+- 代码证据索引见 `00-source-file-index.md`

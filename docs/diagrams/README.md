@@ -6,10 +6,10 @@ Mermaid 是 source/design 笔记中的表达形式，不再作为独立知识分
 
 | 旧 diagram | 新 canonical 位置 |
 | --- | --- |
-| `00-hermes-system-map.md` | `notes/source/00-repo-map.md` |
-| `01-tool-dispatch-flow.md` | `notes/source/01-tool-runtime.md` |
+| `00-hermes-system-map.md` | `notes/source/00-architecture-overview.md` |
+| `01-tool-dispatch-flow.md` | `notes/source/01-tool-system-overview.md` |
 | `02-prompt-layers.md` | `notes/source/02-prompt-assembly.md` |
-| `03-agent-turn-lifecycle.md` | `notes/source/03-agent-loop.md` |
+| `03-agent-turn-lifecycle.md` | `notes/source/03-agent-turn-lifecycle.md` |
 | `05-gateway-message-flow.md` | `notes/source/05-gateway-internals.md` |
 | `06-acp-bridge-flow.md` | `notes/source/06-acp-adapter.md` |
 | `08-a2a-hermes-mapping.md` | `notes/design/a2a-hermes-mapping.md` |

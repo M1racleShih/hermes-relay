@@ -26,7 +26,7 @@
 
 ## 产出文件
 
-- `notes/source/01a-registry-dispatch-deep.md`
+- `notes/source/01a-registry-internals.md`
 
 ## 下一次继续
 
