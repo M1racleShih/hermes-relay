@@ -55,40 +55,29 @@ HARDLINE 覆盖的是**不可恢复的灾难性操作**（rm -rf /、mkfs、dd �
 
 ## 一、模块在架构中的角色
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                    AIAgent (run_agent.py)                  │
-│                                                           │
-│  ┌─ Agent Loop Tools ────────────────────────────────┐    │
-│  │  todo / memory / session_search / delegate_task    │    │
-│  │  (直接在 agent loop 内处理,不走 registry)          │    │
-│  └────────────────────────────────────────────────────┘    │
-│                         │                                  │
-│                         ▼                                  │
-│  ┌─ model_tools.py (唯一中介) ───────────────────────┐    │
-│  │  get_tool_definitions() → 生成 schema 下发给 LLM   │    │
-│  │  handle_function_call() → 8步分发流水线            │    │
-│  └───────────┬────────────────────────┬───────────────┘    │
-│              │                        │                    │
-│              ▼                        ▼                    │
-│  ┌─ toolsets.py ─────┐  ┌─ registry.py (单例) ─────────┐  │
-│  │  45个预设组合      │  │  ToolEntry × N               │  │
-│  │  resolve_toolset() │  │  register / dispatch          │  │
-│  │  递归展开          │  │  check_fn (30s TTL)          │  │
-│  └───────────────────┘  └──────────┬───────────────────┘  │
-│                                    │                      │
-│                                    ▼                      │
-│                         ┌─ tools/*.py ──────────────────┐  │
-│                         │  terminal_tool.py              │  │
-│                         │  ├── handler: handle_terminal  │  │
-│                         │  ├── check_fn: check_terminal  │  │
-│                         │  │   _requirements             │  │
-│                         │  └── approval: _check_all_     │  │
-│                         │       guards                   │  │
-│                         │  file_tools.py / web_tools.py  │  │
-│                         │  ... 更多工具                  │  │
-│                         └───────────────────────────────┘  │
-└───────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph AIAgent["AIAgent (run_agent.py)"]
+        direction TB
+        ALT["Agent Loop Tools<br/>todo · memory · session_search · delegate_task<br/><i>直接在 agent loop 内处理，不走 registry</i>"]
+        MT["model_tools.py<br/><b>唯一中介</b><br/>get_tool_definitions() · handle_function_call()"]
+        TS["toolsets.py<br/>45 个预设组合<br/>resolve_toolset() 递归展开"]
+        REG["registry.py <i>(单例)</i><br/>ToolEntry × N<br/>register · dispatch · check_fn"]
+        TOOLS["tools/*.py<br/>terminal_tool · file_tools · web_tools · ..."]
+    end
+
+    ALT --> MT
+    MT --> TS
+    MT --> REG
+    TS --> REG
+    REG --> TOOLS
+
+    style AIAgent fill:#f8fafc,stroke:#64748b,stroke-width:2px
+    style MT fill:#eff6ff,stroke:#3b82f6,stroke-width:2px
+    style REG fill:#f0fdf4,stroke:#22c55e,stroke-width:2px
+    style TOOLS fill:#fefce8,stroke:#eab308,stroke-width:1px
+    style TS fill:#faf5ff,stroke:#a855f7,stroke-width:1px
+    style ALT fill:#fef2f2,stroke:#ef4444,stroke-width:1px,stroke-dasharray: 5 5
 ```
 
 **关键边界**：
@@ -98,22 +87,24 @@ HARDLINE 覆盖的是**不可恢复的灾难性操作**（rm -rf /、mkfs、dd �
 
 ## 二、ToolEntry 数据结构
 
-```
-ToolEntry (__slots__ 优化, 11 字段)
-─────────────────────────────────────────────────────────────────
-字段名                     类型                      用途
-─────────────────────────────────────────────────────────────────
-name                       str                       工具唯一标识符（路由键）
-toolset                    str                       所属 toolset（分组+过滤）
-schema                     dict                      JSON Schema（OpenAI 格式）
-handler                    Callable                  执行函数, 返回 str
-check_fn                   Optional[Callable]        可用性检查（探测外部依赖）
-requires_env               list[str]                 需要的环境变量（UI 展示）
-is_async                   bool                      handler 是否 async
-description                str                       描述文本
-emoji                      str                       UI 展示用
-max_result_size_chars      Optional[int|float]       返回结果截断上限
-dynamic_schema_overrides   Optional[Callable[[],d]]  运行时 schema 覆盖
+```mermaid
+classDiagram
+    class ToolEntry {
+        <<__slots__ 优化, 11 字段>>
+        +str name
+        +str toolset
+        +dict schema
+        +Callable handler
+        +Optional~Callable~ check_fn
+        +list~str~ requires_env
+        +bool is_async
+        +str description
+        +str emoji
+        +Optional~int|float~ max_result_size_chars
+        +Optional~Callable~ dynamic_schema_overrides
+    }
+
+    note for ToolEntry "schema: OpenAI 格式, 不含外层包装\ncheck_fn: 30s TTL 缓存, 控制是否暴露给模型\ndynamic_schema_overrides: 每次调用时浅合并"
 ```
 
 **关键设计**：
@@ -123,145 +114,119 @@ dynamic_schema_overrides   Optional[Callable[[],d]]  运行时 schema 覆盖
 
 ## 三、从注册到执行的数据流
 
-```
-PHASE 1: 启动时注册
-═══════════════════════════════════════════════════════════════
+```mermaid
+graph TD
+    subgraph PHASE1["Phase 1: 启动时注册"]
+        direction TB
+        TOOL["tools/terminal_tool.py<br/><i>模块级代码</i>"]
+        DISC["discover_builtin_tools()<br/><i>model_tools.py L180</i><br/>1. AST 扫描 tools/*.py<br/>2. importlib.import_module()<br/>3. 触发各模块 register()"]
+        PLUG["discover_plugins()<br/><i>model_tools.py L198</i><br/>插件也调用 register()"]
+        REG1["ToolRegistry._tools<br/>= ToolEntry × N<br/>_generation += 1"]
 
-tools/terminal_tool.py (模块级代码)
-     │
-     │  registry.register(
-     │      name="terminal",
-     │      toolset="terminal",
-     │      schema={...},
-     │      handler=handle_terminal,
-     │      check_fn=check_terminal_requirements,
-     │  )
-     ▼
-┌──────────────────────────────────────┐
-│  ToolRegistry._tools["terminal"]     │
-│  = ToolEntry(name="terminal", ...)   │
-│  _generation += 1                    │
-└──────────────────────────────────────┘
-     ▲
-     │  discover_builtin_tools()     ← model_tools.py L180
-     │  1. AST 扫描 tools/*.py       （避免 import 副作用）
-     │  2. importlib.import_module()  （只 import 通过 AST 的）
-     │  3. 触发各模块的 register()    （模块级副作用）
-     │
-     │  discover_plugins()           ← model_tools.py L198
-     │  插件也调用 registry.register()
+        TOOL -->|"register(name, toolset,<br/>schema, handler, check_fn)"| REG1
+        DISC -->|"触发"| TOOL
+        PLUG --> REG1
+    end
 
+    subgraph PHASE2["Phase 2: Schema 生成"]
+        direction TB
+        INIT["AIAgent.__init__()<br/>gateway runner"]
+        GTF["get_tool_definitions()<br/>enabled_toolsets, disabled_toolsets"]
+        COMP["_compute_tool_definitions()"]
+        RES["resolve_toolset()<br/>递归展开 TOOLSETS"]
+        CHK["check_fn 过滤<br/><i>30s TTL 缓存</i>"]
+        POST["后处理<br/>execute_code / discord schema 重建"]
+        API["LLM API call<br/>tools=tool_definitions"]
 
-PHASE 2: Schema 生成
-═══════════════════════════════════════════════════════════════
+        INIT --> GTF --> COMP
+        COMP --> RES --> CHK --> POST --> API
+    end
 
-AIAgent.__init__() / gateway runner
-     │
-     │  get_tool_definitions(
-     │      enabled_toolsets=["hermes-cli"],
-     │      disabled_toolsets=["browser"]
-     │  )
-     ▼
-┌──────────────────────────────────────┐
-│  _compute_tool_definitions()         │
-│  ├─ resolve_toolset("hermes-cli")    │  → 37 个工具名
-│  │  └─ 递归展开 TOOLSETS 字典       │
-│  ├─ resolve_toolset("browser")       │  → 减去 browser 工具
-│  ├─ registry.get_definitions()       │  → check_fn 过滤
-│  │  └─ _check_fn_cached()           │  → 30s TTL 缓存
-│  ├─ dynamic_schema_overrides 合并    │
-│  └─ 后处理 (execute_code/discord)   │
-└──────────────────────────────────────┘
-     │
-     │  返回 OpenAI tool definitions
-     │  [{"type":"function","function":{...}}, ...]
-     ▼
-  LLM API call (tools=tool_definitions)
+    subgraph PHASE3["Phase 3: 工具调用分发"]
+        direction TB
+        LLM["LLM 返回 tool_calls"]
+        COERCE["Step 1: coerce_tool_args()<br/><i>\"42\"→42, \"true\"→True</i>"]
+        INTER["Step 2: Agent Loop 拦截<br/>todo/memory/... → stub"]
+        PRE["Step 3: pre_tool_call 钩子<br/>可阻断执行"]
+        DISP["Step 5: registry.dispatch()"]
+        HANDLER["handler(args)<br/>→ handle_terminal()"]
+        APPROV["_check_all_guards()<br/><i>审批链</i>"]
+        POSTH["Step 6-7: post/transform 钩子"]
+        RESULT["messages.append<br/>{role: tool, content: result}"]
 
+        LLM --> COERCE --> INTER --> PRE --> DISP --> HANDLER --> APPROV
+        APPROV --> POSTH --> RESULT
+    end
 
-PHASE 3: 工具调用分发
-═══════════════════════════════════════════════════════════════
+    PHASE1 -->|"注册完成"| PHASE2
+    PHASE2 -->|"schema 下发"| PHASE3
 
-LLM 返回: tool_calls = [{name:"terminal", args:{"command":"ls"}}]
-     │
-     │  handle_function_call("terminal", {"command":"ls"})
-     ▼
-┌──────────────────────────────────────────────────┐
-│  Step 1: coerce_tool_args()                      │
-│    "42"→42, "true"→True, 裸标量→数组包裹        │
-│                                                  │
-│  Step 2: Agent Loop 工具拦截                     │
-│    todo/memory/session_search/delegate_task       │
-│    → 返回 stub error (由 run_agent.py 处理)      │
-│                                                  │
-│  Step 3: pre_tool_call 插件钩子                  │
-│    返回 block_message → 阻断执行                 │
-│                                                  │
-│  Step 4: notify_other_tool_call()                │
-│    重置连续读取计数器                             │
-│                                                  │
-│  Step 5: registry.dispatch("terminal", args)     │
-│    ├─ get_entry("terminal")                      │
-│    ├─ is_async? → _run_async()                   │
-│    └─ entry.handler(args)                        │
-│         └─ handle_terminal()                     │
-│              └─ _check_all_guards() ← 审批链     │
-│                                                  │
-│  Step 6: post_tool_call 钩子 (duration_ms)       │
-│  Step 7: transform_tool_result 钩子              │
-│  Step 8: return result (str)                     │
-└──────────────────────────────────────────────────┘
-     │
-     │  result = '{"stdout": "file1.txt\nfile2.py\n"}'
-     ▼
-  messages.append({"role":"tool", "content":result})
+    style PHASE1 fill:#f0fdf4,stroke:#22c55e,stroke-width:2px
+    style PHASE2 fill:#eff6ff,stroke:#3b82f6,stroke-width:2px
+    style PHASE3 fill:#fefce8,stroke:#eab308,stroke-width:2px
+    style DISP fill:#fef2f2,stroke:#ef4444,stroke-width:2px
+    style APPROV fill:#fef2f2,stroke:#ef4444,stroke-width:1px
 ```
 
 ## 四、安全审批链
 
 ### 4.1 四级防护结构
 
-```
-命令进入 terminal_tool(command)
-    │
-    ├── force=True? ──YES──→ 跳过全部审批 → 执行
-    │
-    └── force=False:
-        ▼
-    check_all_command_guards(command, env_type)
-        │
-        ├─[容器环境] docker/modal/daytona/vercel_sandbox
-        │   └── 直接放行 → 执行
-        │
-        ├─[HARDLINE] detect_hardline_command()
-        │   │ 12 条预编译正则 (rm -rf /, mkfs, dd, shutdown, fork bomb...)
-        │   └── MATCH → BLOCKED ★不可绕过
-        │
-        ├─[SUDO GUARD] _check_sudo_stdin_guard()
-        │   │ SUDO_PASSWORD 未设 && sudo -S 检测
-        │   └── BLOCK → BLOCKED ★不可绕过
-        │
-        ├─[YOLO 旁路]
-        │   │ HERMES_YOLO_MODE / session_yolo / approvals.mode=off
-        │   └── TRUE → 直接放行 → 执行
-        │
-        ├─[DANGEROUS] detect_dangerous_command()
-        │   │ 47 条预编译正则 + tirith 安全扫描
-        │   │ 已审批? (session/permanent allowlist)
-        │   └── 未审批 → 进入审批流程 ↓
-        │
-        ├─[Smart Approval] (mode="smart" 时)
-        │   │ 辅助 LLM 评估: approve/deny/escalate
-        │   ├── approve → 会话级放行
-        │   ├── deny → BLOCKED
-        │   └── escalate → 人工审批 ↓
-        │
-        └─[人工审批]
-            ├── CLI: prompt_dangerous_approval()
-            │   → once / session / always / deny
-            └── Gateway: 阻塞式队列审批
-                → _ApprovalEntry + threading.Event
-                → /approve /deny 命令解除
+```mermaid
+graph TD
+    CMD["terminal_tool(command)"]
+    FORCE{"force=True?"}
+    EXEC["直接执行"]
+
+    subgraph GUARDS["check_all_command_guards()"]
+        direction TB
+        CONT{"容器环境?<br/>docker/modal/daytona/vercel"}
+        HARD{"HARDLINE<br/>detect_hardline_command()<br/><i>12 条预编译正则</i>"}
+        SUDO{"SUDO GUARD<br/>_check_sudo_stdin_guard()<br/><i>SUDO_PASSWORD 未设时</i>"}
+        YOLO{"YOLO 旁路?<br/>HERMES_YOLO_MODE /<br/>session_yolo / mode=off"}
+        DANG{"DANGEROUS<br/>detect_dangerous_command()<br/><i>47 条正则 + tirith</i>"}
+        APPROVED{"已审批?<br/>session/permanent allowlist"}
+        SMART{"Smart Approval<br/><i>辅助 LLM 评估</i>"}
+        HUMAN["人工审批"]
+
+        BLOCKED_H["BLOCKED<br/><b>★ 不可绕过</b>"]
+        BLOCKED_S["BLOCKED<br/><b>★ 不可绕过</b>"]
+        BLOCKED_D["BLOCKED"]
+    end
+
+    CLI["CLI: prompt_dangerous_approval()<br/>once / session / always / deny"]
+    GW["Gateway: 阻塞式队列审批<br/>/approve · /deny"]
+
+    CMD --> FORCE
+    FORCE -->|"Yes"| EXEC
+    FORCE -->|"No"| GUARDS
+    CONT -->|"Yes"| EXEC
+    CONT -->|"No"| HARD
+    HARD -->|"MATCH"| BLOCKED_H
+    HARD -->|"Pass"| SUDO
+    SUDO -->|"BLOCK"| BLOCKED_S
+    SUDO -->|"Pass"| YOLO
+    YOLO -->|"Yes"| EXEC
+    YOLO -->|"No"| DANG
+    DANG --> APPROVED
+    APPROVED -->|"Yes"| EXEC
+    APPROVED -->|"No"| SMART
+    SMART -->|"approve"| EXEC
+    SMART -->|"deny"| BLOCKED_D
+    SMART -->|"escalate"| HUMAN
+    DANG -->|"安全"| EXEC
+    HUMAN --> CLI
+    HUMAN --> GW
+
+    style BLOCKED_H fill:#fecaca,stroke:#dc2626,stroke-width:2px
+    style BLOCKED_S fill:#fecaca,stroke:#dc2626,stroke-width:2px
+    style BLOCKED_D fill:#fed7aa,stroke:#f97316,stroke-width:1px
+    style EXEC fill:#bbf7d0,stroke:#22c55e,stroke-width:2px
+    style HARD fill:#fef2f2,stroke:#ef4444,stroke-width:2px
+    style SUDO fill:#fef2f2,stroke:#ef4444,stroke-width:1px
+    style YOLO fill:#f0fdf4,stroke:#22c55e,stroke-width:1px
+    style DANG fill:#fff7ed,stroke:#f97316,stroke-width:1px
+    style SMART fill:#eff6ff,stroke:#3b82f6,stroke-width:1px
 ```
 
 ### 4.2 归一化防混淆（三步防线）
@@ -312,44 +277,55 @@ LLM 返回: tool_calls = [{name:"terminal", args:{"command":"ls"}}]
 
 ### 5.2 resolve_toolset() 递归展开
 
-```
-resolve_toolset("hermes-cli")
-    │
-    ├─ 查 TOOLSETS["hermes-cli"]
-    │  → {"tools": _HERMES_CORE_TOOLS, "includes": []}
-    │  → 返回 37 个工具名
-    │
-    ├─ resolve_toolset("debugging")
-    │  → {"tools": ["terminal"], "includes": ["web", "file"]}
-    │  → 展开: ["terminal"] + resolve_toolset("web") + resolve_toolset("file")
-    │  → 环检测: visited 集合跟踪已访问 toolset
-    │
-    └─ 未知 toolset "hermes-xxx"?
-       → 查 platform_registry
-       → 已注册平台 → 返回 _HERMES_CORE_TOOLS + 该平台的插件工具
+```mermaid
+graph TD
+    INPUT["resolve_toolset(name)"]
+    CHECK{"已知 toolset?<br/>查 TOOLSETS 字典"}
+    ATOMIC["原子 toolset<br/>直接返回 tools 列表"]
+    COMPOSITE["组合 toolset<br/>展开 includes"]
+    RECURSE["递归 resolve_toolset()<br/><i>环检测: visited 集合</i>"]
+    MERGE["排序 + 去重<br/>返回工具名列表"]
+    UNKNOWN{"未知 toolset?<br/>hermes-* 前缀"}
+    PLATFORM["查 platform_registry<br/>返回 _HERMES_CORE_TOOLS<br/>+ 插件工具"]
+
+    INPUT --> CHECK
+    CHECK -->|"已知: web, terminal, ..."| ATOMIC --> MERGE
+    CHECK -->|"已知: debugging, safe, ..."| COMPOSITE --> RECURSE --> MERGE
+    CHECK -->|"未知"| UNKNOWN
+    UNKNOWN -->|"hermes-*"| PLATFORM --> MERGE
+    UNKNOWN -->|"其他"| FAIL["返回空列表"]
+
+    style INPUT fill:#eff6ff,stroke:#3b82f6,stroke-width:2px
+    style RECURSE fill:#faf5ff,stroke:#a855f7,stroke-width:1px
+    style MERGE fill:#f0fdf4,stroke:#22c55e,stroke-width:1px
 ```
 
 ## 六、async 桥接的三路径策略
 
-```
-_run_async(coro) 的三条路径:
+```mermaid
+graph TD
+    CALL["_run_async(coro)"]
+    CHECK{"当前执行上下文?"}
+    ASYNC["路径 1: async 上下文<br/><i>gateway / RL env</i>"]
+    WORKER["路径 2: 工作线程<br/><i>delegate_task 并行执行</i>"]
+    MAIN["路径 3: 主线程<br/><i>CLI 常规路径</i>"]
 
-1. 已在 async 上下文中 (gateway/RL env)
-   → 创建新线程 + 专用 event loop
-   → ThreadPoolExecutor(max_workers=1)
-   → 300s 超时，超时时取消 task 并关闭 loop
+    NEW["新线程 + 专用 event loop<br/>ThreadPoolExecutor(1)<br/>300s 超时"]
+    WLOOP["线程本地持久化 loop<br/>_get_worker_loop()"]
+    MLOOP["全局持久化 loop<br/>_get_tool_loop()"]
 
-2. 工作线程 (delegate_task 的并行执行)
-   → 线程本地持久化 loop (_get_worker_loop)
+    WHY["为什么不直接 asyncio.run()?<br/>asyncio.run() 每次创建+销毁 loop<br/>→ 缓存的 httpx/AsyncOpenAI 客户端<br/>  在 GC 时关闭已死 loop<br/>→ \"Event loop is closed\" 错误<br/>→ 持久化 loop 避免此问题"]
 
-3. 主线程 (CLI 常规路径)
-   → 全局持久化 loop (_get_tool_loop)
+    CALL --> CHECK
+    CHECK -->|"async 上下文"| ASYNC --> NEW
+    CHECK -->|"工作线程"| WORKER --> WLOOP
+    CHECK -->|"主线程"| MAIN --> MLOOP
 
-为什么不直接用 asyncio.run()?
-  asyncio.run() 每次创建+销毁 event loop
-  → 缓存的 httpx/AsyncOpenAI 客户端在 GC 时关闭已死 loop
-  → "Event loop is closed" 错误
-  → 持久化 loop 避免此问题
+    style CALL fill:#eff6ff,stroke:#3b82f6,stroke-width:2px
+    style WHY fill:#fefce8,stroke:#eab308,stroke-width:1px,stroke-dasharray: 5 5
+    style ASYNC fill:#fef2f2,stroke:#ef4444,stroke-width:1px
+    style WORKER fill:#faf5ff,stroke:#a855f7,stroke-width:1px
+    style MAIN fill:#f0fdf4,stroke:#22c55e,stroke-width:1px
 ```
 
 ## 七、关键源码文件
