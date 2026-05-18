@@ -16,16 +16,6 @@ Hermes commit/version:
 
 ## Call chain / invariants
 
-## Verification
-
-Command/test/script:
-
-```bash
-
-```
-
-Result:
-
 ## Questions
 
 

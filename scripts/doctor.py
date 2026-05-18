@@ -9,7 +9,7 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_HERMES_SRC = Path("/home/shq/opensource/hermes-agent")
+DEFAULT_HERMES_SRC = ROOT.parent / "hermes-agent"
 REQUIRED = [
     "LEARNING_PLAN.md",
     "SOURCE_MAP.md",
@@ -105,7 +105,7 @@ def main() -> int:
         else:
             print(f"WARN HERMES_SRC set but path does not exist: {p}")
     elif DEFAULT_HERMES_SRC.exists():
-        print(f"OK   HERMES_SRC fallback={DEFAULT_HERMES_SRC}")
+        print("OK   HERMES_SRC fallback=../hermes-agent")
     else:
         print("WARN HERMES_SRC is not set. Set it to your local hermes-agent clone for source reading.")
 

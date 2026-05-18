@@ -40,7 +40,7 @@
 
 ## 当前进度
 
-- **Phase 0**：✅ 完成（repo map + 代码证据索引 + 架构总览，已补验证记录）
-- **Phase 1**：✅ 完成（Tool System 全链路，已补验证记录和图文说明）
-- **Phase 2**：✅ 完成（Prompt Assembly，已补验证记录并按源码修正 skills 缓存描述）
+- **Phase 0**：✅ 完成（repo map + 代码证据索引 + 架构总览）
+- **Phase 1**：✅ 完成（Tool System 全链路，已补图文说明）
+- **Phase 2**：✅ 完成（Prompt Assembly，已按源码修正 skills 缓存描述）
 - **Phase 3+**：待开始

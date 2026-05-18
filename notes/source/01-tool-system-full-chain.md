@@ -355,26 +355,3 @@ graph TD
 本次回答了：Tool System 从注册到执行的完整生命周期、四级安全审批链的设计哲学、check_fn vs 审批链的区别。
 
 下一次应从 `agent/prompt_builder.py` 继续，回答"Hermes 如何将 SOUL.md / MEMORY / skills 组装成 LLM 的 system prompt"。
-
-## 八、验证记录
-
-本轮修订用只读命令重新校验了 tool system 的关键源码锚点：
-
-```bash
-rg -n "class ToolEntry|def discover_builtin_tools|def register\\(|def get_definitions\\(|def dispatch\\(|def _check_fn_cached" \
-  /home/shq/opensource/hermes-agent/tools/registry.py
-
-rg -n "def get_tool_definitions|def _compute_tool_definitions|def handle_function_call|def _run_async|def coerce_tool_args" \
-  /home/shq/opensource/hermes-agent/model_tools.py
-
-rg -n "def check_all_command_guards|def detect_hardline_command|def detect_dangerous_command|def _normalize_command_for_detection|def prompt_dangerous_approval|def _smart_approve" \
-  /home/shq/opensource/hermes-agent/tools/approval.py
-
-wc -l /home/shq/opensource/hermes-agent/tools/registry.py \
-  /home/shq/opensource/hermes-agent/model_tools.py \
-  /home/shq/opensource/hermes-agent/toolsets.py \
-  /home/shq/opensource/hermes-agent/tools/approval.py \
-  /home/shq/opensource/hermes-agent/tools/terminal_tool.py
-```
-
-校验结果：`ToolEntry`、discovery/register/dispatch、`handle_function_call()`、`_run_async()`、command guard 主入口和归一化函数均能在当前源码中定位；关键文件 LOC 与本文表格一致。

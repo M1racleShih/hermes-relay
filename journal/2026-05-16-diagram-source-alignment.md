@@ -12,17 +12,17 @@
 
 阅读源码：
 
-- `/home/shq/opensource/hermes-agent/model_tools.py`
-- `/home/shq/opensource/hermes-agent/tools/registry.py`
-- `/home/shq/opensource/hermes-agent/toolsets.py`
-- `/home/shq/opensource/hermes-agent/run_agent.py`
-- `/home/shq/opensource/hermes-agent/agent/prompt_builder.py`
-- `/home/shq/opensource/hermes-agent/gateway/run.py`
-- `/home/shq/opensource/hermes-agent/gateway/platforms/base.py`
-- `/home/shq/opensource/hermes-agent/acp_adapter/server.py`
-- `/home/shq/opensource/hermes-agent/acp_adapter/session.py`
-- `/home/shq/opensource/hermes-agent/acp_adapter/events.py`
-- `/home/shq/opensource/hermes-agent/acp_adapter/permissions.py`
+- `$HERMES_SRC/model_tools.py`
+- `$HERMES_SRC/tools/registry.py`
+- `$HERMES_SRC/toolsets.py`
+- `$HERMES_SRC/run_agent.py`
+- `$HERMES_SRC/agent/prompt_builder.py`
+- `$HERMES_SRC/gateway/run.py`
+- `$HERMES_SRC/gateway/platforms/base.py`
+- `$HERMES_SRC/acp_adapter/server.py`
+- `$HERMES_SRC/acp_adapter/session.py`
+- `$HERMES_SRC/acp_adapter/events.py`
+- `$HERMES_SRC/acp_adapter/permissions.py`
 
 调用链：
 
@@ -84,4 +84,4 @@ flowchart TD
 
 下一次继续：
 
-- 从 `/home/shq/opensource/hermes-agent/gateway/run.py::_handle_message_with_agent` 和 `_run_agent` 继续，把 Gateway session context 到 `AIAgent.run_conversation()` 的参数映射补成一张更细的 Mermaid 图。
+- 从 `$HERMES_SRC/gateway/run.py::_handle_message_with_agent` 和 `_run_agent` 继续，把 Gateway session context 到 `AIAgent.run_conversation()` 的参数映射补成一张更细的 Mermaid 图。

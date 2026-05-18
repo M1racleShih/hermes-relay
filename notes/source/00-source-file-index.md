@@ -4,8 +4,6 @@
 
 所有路径相对于 `~/opensource/hermes-agent/`。
 
-最后校验：2026-05-18，使用 `wc -l` 与 `rg -n` 对关键入口、函数和 LOC 做只读抽查。
-
 ---
 
 ## 1. 入口与启动链路
@@ -209,27 +207,3 @@
 | `tests/` | ~17k tests across ~900 files |
 | `tests/test_*tool*.py` | Tool 相关测试 |
 | `tests/acp/` | ACP adapter 测试 |
-
----
-
-## 11. 验证记录
-
-本索引用下面的只读命令校验关键源码锚点：
-
-```bash
-wc -l /home/shq/opensource/hermes-agent/cli.py \
-  /home/shq/opensource/hermes-agent/gateway/run.py \
-  /home/shq/opensource/hermes-agent/acp_adapter/server.py \
-  /home/shq/opensource/hermes-agent/run_agent.py \
-  /home/shq/opensource/hermes-agent/agent/prompt_builder.py \
-  /home/shq/opensource/hermes-agent/agent/skill_commands.py
-
-rg -n "class AIAgent|def run_conversation|def chat\\(|def _invoke_tool|def _compress_context|def _persist_session|def interrupt\\(" \
-  /home/shq/opensource/hermes-agent/run_agent.py
-
-rg -n "def build_skills_system_prompt|def load_soul_md|def build_context_files_prompt|def _build_skill_message" \
-  /home/shq/opensource/hermes-agent/agent/prompt_builder.py \
-  /home/shq/opensource/hermes-agent/agent/skill_commands.py
-```
-
-校验结论：AIAgent 主循环锚点、prompt/skill 关键函数和核心入口 LOC 均已重新对齐；本索引仍是快速定位表，不替代专题笔记中的调用链解释。

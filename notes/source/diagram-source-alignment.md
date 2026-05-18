@@ -72,4 +72,4 @@ sequenceDiagram
 
 ## 下一次应该继续
 
-从 `/home/shq/opensource/hermes-agent/gateway/run.py::_handle_message_with_agent` 和 `_run_agent` 继续，补一张“Gateway context -> AIAgent.run_conversation 参数”的细图，并验证哪些字段适合映射到 A2A task/session metadata。
+从 `$HERMES_SRC/gateway/run.py::_handle_message_with_agent` 和 `_run_agent` 继续，补一张“Gateway context -> AIAgent.run_conversation 参数”的细图，并验证哪些字段适合映射到 A2A task/session metadata。

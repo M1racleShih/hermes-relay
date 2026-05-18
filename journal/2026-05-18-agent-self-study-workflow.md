@@ -2,7 +2,7 @@
 
 Date: 2026-05-18
 Branch:
-Hermes commit/version: local source at `/home/shq/opensource/hermes-agent`
+Hermes commit/version: local source at `$HERMES_SRC`
 
 ## Goal
 

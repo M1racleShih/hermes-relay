@@ -15,5 +15,4 @@ make new-log TITLE=tool-registry-first-pass
 - 今天切哪个源码面？
 - 读了哪些文件/函数？
 - 得到什么结论？
-- 验证了什么？
 - 下一次从哪里继续？

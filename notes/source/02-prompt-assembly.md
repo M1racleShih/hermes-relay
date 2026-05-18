@@ -335,28 +335,3 @@ messages[-1] (最新)            → breakpoint #4
 ---
 
 本次回答了：Hermes 如何将 SOUL.md / MEMORY / skills / context files 组装成 LLM 的 system prompt，以及三层 Tier 架构、Frozen Snapshot Pattern、Skills 两层缓存 + fallback 扫描的设计动机。
-
-## 八、验证记录
-
-本轮修订用只读命令重新校验了 prompt assembly 的关键源码锚点：
-
-```bash
-rg -n "def build_skills_system_prompt|def build_context_files_prompt|def _skill_should_show|def load_soul_md|def _scan_context_content" \
-  /home/shq/opensource/hermes-agent/agent/prompt_builder.py
-
-rg -n "def apply_anthropic_cache_control|def _build_skill_message|class MemoryStore|def format_for_system_prompt|def _build_system_prompt_parts" \
-  /home/shq/opensource/hermes-agent/agent/prompt_caching.py \
-  /home/shq/opensource/hermes-agent/agent/skill_commands.py \
-  /home/shq/opensource/hermes-agent/tools/memory_tool.py \
-  /home/shq/opensource/hermes-agent/run_agent.py
-
-wc -l /home/shq/opensource/hermes-agent/agent/prompt_builder.py \
-  /home/shq/opensource/hermes-agent/agent/prompt_caching.py \
-  /home/shq/opensource/hermes-agent/agent/skill_commands.py \
-  /home/shq/opensource/hermes-agent/agent/skill_utils.py \
-  /home/shq/opensource/hermes-agent/agent/memory_manager.py \
-  /home/shq/opensource/hermes-agent/agent/memory_provider.py \
-  /home/shq/opensource/hermes-agent/tools/memory_tool.py
-```
-
-校验结果：context file 加载、skills index 构建、skill runtime message、memory snapshot、Anthropic cache control、AIAgent prompt parts 缓存锚点均能在当前源码中定位；`build_skills_system_prompt()` 源码注释明确是两层缓存并在 miss 时 fallback 到全量扫描，本文已按源码事实修正。
