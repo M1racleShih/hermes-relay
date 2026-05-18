@@ -1,15 +1,15 @@
 # Diagram Source Alignment Notes
 
-目标：记录 standalone Mermaid 图曾经如何与 Hermes-agent upstream 源码对齐，并说明这些图迁移到主题笔记后的 canonical 位置。
+目标：记录 standalone 图示曾经如何与 Hermes-agent upstream 源码对齐，并说明这些图迁移到主题笔记后的 canonical 位置。
 
-当前约定：Mermaid 是 source/design 笔记中的表达形式，不再作为独立知识分类维护。旧 `docs/diagrams/*.md` 内容已迁移到 `notes/source/` 或 `notes/design/`，`docs/diagrams/README.md` 只保留旧路径索引。
+当前约定：可视化是 source/design 笔记中的表达形式，不再作为独立知识分类维护。旧 `docs/diagrams/*.md` 内容已迁移到 `notes/source/` 或 `notes/design/`，`docs/diagrams/README.md` 只保留旧路径索引。
 
 ## 修正摘要
 
 | 原图 | 当前 canonical 位置 | 结论 | 源码依据 |
 | --- | --- | --- | --- |
 | `00-hermes-system-map.md` | `notes/source/00-architecture-overview.md` | 顶层图基本可用，但需要显示 API Server adapter，并把 tool definitions/dispatch 标到 `model_tools.py`。 | `SOURCE_MAP.md` 将 Gateway API Server、`model_tools.py`、registry 分为不同入口。 |
-| `01-tool-dispatch-flow.md` | `notes/source/01-tool-system-overview.md` | 原图把 `AIAgent` 画成直接访问 registry，实际中间层是 `model_tools.py`。 | `model_tools.py:30`/`:180` 触发 discovery，`:271` `get_tool_definitions()`，`:697` `handle_function_call()`；`tools/registry.py:57` discovery，`:234` register，`:320` get_definitions，`:373` dispatch。 |
+| `01-tool-dispatch-flow.md` | `notes/source/01-tool-system-full-chain.md` | 原图把 `AIAgent` 画成直接访问 registry，实际中间层是 `model_tools.py`。 | `model_tools.py:30`/`:180` 触发 discovery，`:271` `get_tool_definitions()`，`:697` `handle_function_call()`；`tools/registry.py:57` discovery，`:234` register，`:320` get_definitions，`:373` dispatch。 |
 | `02-prompt-layers.md` | `notes/source/02-prompt-assembly.md` | 原图的 Honcho static block 不成立；项目上下文是 first-match priority；ephemeral 层应和 cached system prompt 分开。 | `run_agent.py:5901` `_build_system_prompt_parts()`，`:6053` 说明 ephemeral 不在 cached parts，`:6109` `_build_system_prompt()`；`agent/prompt_builder.py:1417` `build_context_files_prompt()`；`toolsets.py:233` 标注 Honcho toolset removed。 |
 | `03-agent-turn-lifecycle.md` | `notes/source/03-agent-turn-lifecycle.md` | 原图方向正确，但漏了 API message sanitize、streaming preferred、assistant tool-call message append、background sync/review。 | `run_agent.py:12458` strict API tool-call sanitize，`:12693` streaming preferred，`:14714` tool_calls branch，`:14945` `_execute_tool_calls()`，`:15473` persist session。 |
 | `05-gateway-message-flow.md` | `notes/source/05-gateway-internals.md` | 原图最大偏差：普通回复不走 `DeliveryRouter`。 | `gateway/platforms/base.py:2812` `handle_message()`，`:3007` `_process_message_background()`，`:3533` `has_pending_interrupt()`；`gateway/run.py:5683` `_handle_message()`，`:7024` `_handle_message_with_agent()`，`:14323` `_run_agent()`，`:15510` `run_conversation()`。 |

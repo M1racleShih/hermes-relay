@@ -2,6 +2,8 @@
 
 这是一个用于系统学习 `NousResearch/hermes-agent` 并逐步达到核心开发者水平的个人学习仓库。
 
+这个仓库的核心用法是：让 LLM/agent 利用自己的代码理解能力、工程背景和归纳能力，帮你把 Hermes 源码拆成一个个可以学习、复盘和继续推进的小切片。A2A 支持是这个学习计划的“毕业设计”：它不是每次阅读都要提前实现的功能，而是用来验证你是否已经理解 Hermes 的入口、工具、prompt、session、gateway、ACP 和安全边界。
+
 它不是 Hermes 源码镜像。你已经有本地 Hermes 安装和使用经验，所以这里默认你会把 Hermes 源码放在旁边，或者用环境变量指向它：
 
 ```bash
@@ -29,9 +31,22 @@ make open-plan
 然后按 `LEARNING_PLAN.md` 从 Phase 0 开始推进。每次学习都要求产出：
 
 1. 一份 session log；
-2. 一份源码阅读笔记或设计笔记，必要时在其中内嵌 Mermaid 图；
+2. 一份源码阅读笔记或设计笔记；
 3. 一个小 commit；
 4. 一个可验证动作：测试、脚本、复现、最小 patch、设计草案之一。
+
+## Agent 自学 Workflow
+
+当你不在场，或希望 agent 先替你推进一个小学习切片时，使用 agent 自学模式。它不是机械批处理，而是一次小型源码学习会话：
+
+1. 先读 `LEARNING_PLAN.md`、`SOURCE_MAP.md`、`ROADMAP_A2A.md`、`notes/INDEX.md` 和最近一篇 `journal/`。
+2. 选一个能被源码验证的问题，通常只覆盖 3-6 个紧密相关文件。
+3. 先建立模块在整体架构里的位置，再进入数据流、关键结构、调用链、错误处理和不变量。
+4. 每个重要结论都落到具体文件、函数、调用链或测试，不写脱离源码的概念总结。
+5. 需要可视化时自然选择表达方式：Mermaid、ASCII、表格或文字都可以。图要服务解释，不能替代解释；用了图就配文字说明它回答什么问题、揭示什么结论。Mermaid 图参考 `beautiful-mermaid` 的清晰和可读原则：`https://github.com/lukilabs/beautiful-mermaid`。
+6. 至少做一个验证动作，例如 `rg` 锚点检查、只读脚本、现有测试、fixture 检查或测试设计。
+7. 更新 `journal/`，并新增或完善一份 `notes/source/` 或 `notes/design/`；新增笔记时同步更新 `notes/INDEX.md`。
+8. 结尾留下下一次最自然的继续点。
 
 ## 仓库布局
 
@@ -42,7 +57,6 @@ make open-plan
 ├── ROADMAP_A2A.md                 # 让 Hermes 支持 A2A 的实现路线
 ├── RULES.md                       # 学习与贡献规则
 ├── AGENTS.md                      # 给 Hermes/AI 助手的项目上下文
-├── docs/diagrams/                 # 旧 Mermaid 路径迁移索引
 ├── journal/                       # 每次学习记录
 ├── notes/source/                  # 源码精读笔记
 ├── notes/design/                  # 设计草案和 ADR
@@ -59,7 +73,7 @@ make open-plan
 ```bash
 git checkout -b phase/01-tool-system
 make new-log TITLE=tool-registry-first-pass
-# 阅读、画图、写笔记、做验证
+# 阅读源码、写笔记、做验证
 git add .
 git commit -m "docs(tools): map registry discovery flow"
 ```

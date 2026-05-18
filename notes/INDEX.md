@@ -8,19 +8,17 @@
 |---|---|---|---|
 | `00-architecture-overview.md` | 全局架构、入口、核心层、运行形态、一条请求的完整旅程 | 0 | 前置：无。延伸：所有笔记 |
 | `00-source-file-index.md` | 全部关键源码文件索引（按模块分类，精确到行号） | 0 | 前置：无。与所有笔记交叉引用 |
-| `01-tool-system-overview.md` | registry + model_tools + toolsets 概览 | 0→1 | 前置：00。延伸：01a |
-| `01a-registry-internals.md` | ToolEntry, ToolRegistry, discover, register, dispatch, get_definitions, handle_function_call, toolsets 解析 | 1 | 前置：01。延伸：01b |
-| `01b-approval-chain-and-e2e-tracing.md` | 危险命令审批链（hardline/dangerous/yolo/session），check_fn 探测，web_search 端到端追踪 | 1 | 前置：01a。延伸：Phase 2（prompt assembly） |
-| `02-prompt-assembly.md` | prompt 层 | 1 | 前置：01 |
-| `03-agent-turn-lifecycle.md` | agent loop | 2 | 前置：01 |
-| `05-gateway-internals.md` | gateway | 3 | 前置：03 |
-| `06-acp-adapter.md` | ACP adapter | 4 | 前置：01a。A2A 直接参考 |
+| `01-tool-system-full-chain.md` | registry + model_tools + toolsets + approval 全链路 | 1 | 前置：00。延伸：02 |
+| `02-prompt-assembly.md` | prompt builder、skills、memory snapshot、context files | 2 | 前置：01 |
+| `03-agent-turn-lifecycle.md` | agent loop | 3 | 前置：01, 02 |
+| `05-gateway-internals.md` | gateway | 4 | 前置：03 |
+| `06-acp-adapter.md` | ACP adapter | 5 | 前置：03。A2A 直接参考 |
 
 ## 设计笔记
 
 | 笔记 | 主题 | 关联 |
 |---|---|---|
-| `a2a-hermes-mapping.md` | A2A 与 Hermes 映射 | 前置：01a, 06 |
+| `a2a-hermes-mapping.md` | A2A 与 Hermes 映射 | 前置：03, 06 |
 
 ## 笔记模板（v3）
 
@@ -29,7 +27,7 @@
 2. **推荐阅读路径**（按什么顺序读源码最有效）
 3. **重难点清单**（★-★★★ 难度标记）
 4. **设计意图**（Why，推荐但不强制）
-5. 详细分析（调用链、数据结构、不变量、Mermaid 图）
+5. 详细分析（调用链、数据结构、不变量；必要时用 Mermaid、ASCII、表格或文字结构辅助说明）
 
 ## 参考仓库（Claude Code 源码剖析方法论）
 

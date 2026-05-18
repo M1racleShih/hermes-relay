@@ -2,7 +2,7 @@
 
 ## 1. 每次学习必须留下 Git 痕迹
 
-禁止“看了一下午源码但没有 commit”。每次至少提交一种产物：笔记、图、脚本、测试、设计草案。
+禁止“看了一下午源码但没有 commit”。每次至少提交一种产物：笔记、脚本、测试、设计草案或经过验证的索引更新。
 
 推荐 commit 粒度：
 
@@ -13,9 +13,9 @@ test(a2a): draft task state transition cases
 chore(journal): add session log for acp adapter reading
 ```
 
-## 2. 先画图，再深挖
+## 2. 先建立整体，再深挖
 
-流程性或状态性内容必须先画 Mermaid：
+流程性或状态性内容先建立整体视图，再深入函数细节。视图可以用 Mermaid、ASCII、表格或结构化文字表达，按内容自然选择：
 
 - tool dispatch flow；
 - prompt layer assembly；
@@ -24,6 +24,8 @@ chore(journal): add session log for acp adapter reading
 - gateway message flow；
 - ACP/A2A event bridge；
 - A2A task state machine。
+
+如果使用图，图前说明它要回答的问题，图后说明它揭示的调用链、不变量或风险。不要为了完成格式而画图。Mermaid 图可以参考 `https://github.com/lukilabs/beautiful-mermaid` 的清晰和可读原则。
 
 ## 3. 源码阅读不要逐行主义
 

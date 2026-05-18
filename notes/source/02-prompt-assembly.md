@@ -314,7 +314,7 @@ messages[-1] (最新)            → breakpoint #4
 |------|------|------|
 | `agent/prompt_builder.py` | 1456 | 核心 prompt 组装（context files + skills + environment hints） |
 | `agent/prompt_caching.py` | 79 | Anthropic cache_control 断点布局 |
-| `agent/skill_commands.py` | 578 | /skill 运行时命令、skill 消息组装 |
+| `agent/skill_commands.py` | 501 | /skill 运行时命令、skill 消息组装 |
 | `agent/skill_utils.py` | ~550 | Skill 发现、frontmatter 解析、平台过滤 |
 | `agent/skill_preprocessing.py` | ~130 | 模板变量替换、inline shell 展开 |
 | `agent/memory_manager.py` | 555 | Memory provider 协调、tool 路由 |
@@ -325,4 +325,3 @@ messages[-1] (最新)            → breakpoint #4
 ---
 
 本次回答了：Hermes 如何将 SOUL.md / MEMORY / skills / context files 组装成 LLM 的 system prompt，以及三层 Tier 架构、Frozen Snapshot Pattern、Skills 三层缓存的设计动机。
-

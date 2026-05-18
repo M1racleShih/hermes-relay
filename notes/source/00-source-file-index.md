@@ -134,7 +134,7 @@
 | 文件 | LOC | 关键函数 | 说明 |
 |------|-----|---------|------|
 | `agent/prompt_builder.py` | 1,456 | `build_system_prompt()`, `load_soul_md()` | SOUL.md + MEMORY.md + context files 组装 |
-| `agent/skill_commands.py` | — | `build_skills_system_prompt()` | Skill index 注入 |
+| `agent/skill_commands.py` | 501 | skill 命令解析与运行时 skill 内容注入 | `/skill` 加载完整内容后作为 user message 注入 |
 | `agent/context_compressor.py` | 1,583 | — | 长对话压缩 |
 
 ---

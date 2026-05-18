@@ -45,8 +45,8 @@
 4. Spike 太晚。
    等到 Phase 9 才做 spike，反馈周期较长。可以提前做两个不碰 agent loop 的 tracer bullet：AgentCard generator 和 in-memory TaskManager。
 
-5. 当前 `AGENTS.md` 不足以支撑无人值守学习。
-   原规则适合有人在场时协作，但没有限定单次切片大小、停止条件、验证动作、交接格式，也没有明确“默认不改上游源码”。如果让 agent 在用户休息时自动推进，容易出现跨 phase 泛读、产物不可复查、或过早实现的风险。
+5. 当前 `AGENTS.md` 不足以支撑 agent 自学。
+   原规则适合有人在场时协作，但没有限定单次切片大小、停止条件、验证动作、交接格式，也没有明确“默认不改上游源码”。如果让 agent 先替用户推进学习，容易出现跨 phase 泛读、产物不可复查、或过早实现的风险。
 
 ## Suggested Adjustment
 
@@ -66,7 +66,7 @@ flowchart TB
 
 ## Autonomous Agent Guidance
 
-如果目标是让 agent 在无人值守时按阶段执行学习计划，建议把 `AGENTS.md` 调整为“切片执行协议”，而不是只给通用协作原则。
+如果目标是让 agent 按阶段执行自学切片，建议把 `AGENTS.md` 调整为“切片执行协议”，而不是只给通用协作原则。
 
 ```mermaid
 flowchart LR

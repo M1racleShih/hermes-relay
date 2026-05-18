@@ -1,44 +1,42 @@
 # Source Reading Note: {{title}}
 
-## Why this file matters
+## 核心结论
 
 
-## Entry points
+## 推荐阅读路径
 
 
-## Key data structures
+## 重难点清单
+
+| # | 难点 | 源码位置 | 难度 | 说明 |
+|---|---|---|---|---|
+| 1 |  | `path.py:function` | ★ |  |
+
+## 架构位置
 
 
-## Key functions/classes
+## 关键数据结构
 
-| symbol | role | risk |
-|---|---|---|
-| `X` |  |  |
 
-## Call chain
+## 调用链
 
-```mermaid
-sequenceDiagram
-    participant A
-    participant B
-    A->>B: call
-```
 
-## Invariants
+## 关键不变量
 
 - 
 
-## Failure modes
+## 失败模式与风险
 
 - 
 
-## Tests to inspect
+## 验证记录
 
 - `tests/...`
 
-## Contribution implications
+## 设计意图
 
 
-## A2A relevance
+## A2A 相关性
 
 
+## 下一次继续

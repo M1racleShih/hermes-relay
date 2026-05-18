@@ -156,7 +156,7 @@ CronScheduler → cron/jobs.py → _run_job_script() or _run_agent_prompt()
 - **入口文件**：`cron/scheduler.py`（1820 LOC）
 - **任务执行**：`cron/jobs.py`（1114 LOC）
 - **Delivery**：复用 Gateway 的 adapter 发送到目标平台
-- **特点**：无人值守运行、prompt injection 防护、delivery target 解析
+- **特点**：定时后台运行、prompt injection 防护、delivery target 解析
 
 ### 5. Batch 批量形态
 
@@ -420,7 +420,7 @@ AIAgent.run_conversation() 内部使用了阻塞 I/O（SQLite 写入、文件操
 
 **Q: 为什么有 5 种独立的运行形态而不是统一入口？**
 
-不同使用场景的约束差异大：CLI 需要交互式 prompt_toolkit，Gateway 需要异步多路复用，ACP 需要 JSON-RPC stdio，Cron 需要无人值守 + delivery，Batch 需要并行。强行统一入口会增加不必要的抽象层。当前设计是共享内核（AIAgent），各自适配（5 个入口）。
+不同使用场景的约束差异大：CLI 需要交互式 prompt_toolkit，Gateway 需要异步多路复用，ACP 需要 JSON-RPC stdio，Cron 需要定时后台任务 + delivery，Batch 需要并行。强行统一入口会增加不必要的抽象层。当前设计是共享内核（AIAgent），各自适配（5 个入口）。
 
 ---
 

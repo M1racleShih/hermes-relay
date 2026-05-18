@@ -1,6 +1,6 @@
 # Hermes 核心开发者学习计划
 
-目标：系统性掌握 Hermes Agent 的源码结构、运行时模型、扩展机制和贡献流程，最终具备为 Hermes 增加 A2A 支持的能力。
+目标：借助 LLM/agent 的代码理解、背景知识和归纳能力，系统性掌握 Hermes Agent 的源码结构、运行时模型、扩展机制和贡献流程。A2A 支持是阶段性的毕业设计，用来检验这些理解是否足以落到真实协议适配。
 
 默认前提：你 Python 能力足够强，且已经安装并长期使用 Hermes。因此本计划不花时间讲 Python 基础、安装配置和普通 CLI 使用。
 
@@ -33,8 +33,8 @@ flowchart LR
 | artifact | 存放位置 | 标准 |
 |---|---|---|
 | 学习日志 | `journal/YYYY-MM-DD-*.md` | 记录本次目标、源码位置、结论、疑问、下一步 |
-| 源码笔记 | `notes/source/*.md` | 至少包含入口、关键函数、数据结构、调用链、风险点；源码流程图内嵌在同一笔记 |
-| ADR/设计草案 | `notes/design/*.md` | 涉及架构选择时必须写决策记录；设计/协议图内嵌在同一笔记 |
+| 源码笔记 | `notes/source/*.md` | 至少包含入口、关键函数、数据结构、调用链、风险点；复杂流程可用 Mermaid、ASCII、表格或文字结构辅助说明 |
+| ADR/设计草案 | `notes/design/*.md` | 涉及架构选择时必须写决策记录；协议或状态关系复杂时配可视化说明 |
 | 验证动作 | commit / test / script | 每次学习至少一个可验证动作 |
 
 ## Phase 0：仓库定位与贡献边界
@@ -98,14 +98,14 @@ tests/test_*tool*.py
 
 练习任务：
 
-- 写一份工具注册流程图；
+- 写一份工具注册流程说明，必要时配图；
 - 找一个简单工具，追踪它从 schema 到 handler 的完整路径；
 - 在自己的 Hermes fork 中做一个不准备提交的实验性 toy tool，例如 `echo_json`，验证：注册、toolset 暴露、schema 出现在 model tools、handler 返回 JSON；
 - 写一个最小 pytest，验证 handler 对非法参数返回可控错误。
 
 产出：
 
-- `notes/source/01-tool-system-overview.md`
+- `notes/source/01-tool-system-full-chain.md`
 - `notes/design/adr-001-tool-vs-skill.md`
 - commit：`docs(tools): document registry and dispatch lifecycle`
 
@@ -144,7 +144,7 @@ optional-skills/**/SKILL.md
 
 - 写一个学习用 Hermes skill：`hermes-source-reading`；
 - 用 `.hermes.md` 固化你在学习 Hermes 源码时希望 Hermes 遵循的行为；
-- 做一次 prompt 入口链路图：`AIAgent` 初始化 -> prompt builder -> context files -> skills index。
+- 梳理一次 prompt 入口链路：`AIAgent` 初始化 -> prompt builder -> context files -> skills index，必要时配可视化说明。
 
 产出：
 
@@ -187,7 +187,7 @@ model_tools.py
 7. compression branch：什么时候压缩、如何保护最后 N 条消息；
 8. persistence branch：何时写 SessionDB、何时 flush memory。
 
-建议画图：
+这段调用链适合用 sequence diagram 或等价的文字结构辅助说明：
 
 ```mermaid
 sequenceDiagram
@@ -353,8 +353,8 @@ toolsets.py
 
 练习任务：
 
-- 写 ACP boot/session/event/permission 四张小图；
-- 仿照 ACP 写 A2A adapter 的模块草图；
+- 梳理 ACP boot/session/event/permission 四段流程，必要时配图；
+- 仿照 ACP 写 A2A adapter 的模块草图或结构说明；
 - 列出 A2A 和 ACP 的差异：transport、discovery、task lifecycle、streaming、auth、artifact。
 
 产出：
@@ -458,7 +458,7 @@ Hermes 映射重点：
 
 目标：在 fork 里实现一个不追求完整协议覆盖的 spike，证明 Hermes 能作为 A2A Server 接收 message 并返回 task/message。
 
-建议模块草图：
+建议模块结构：
 
 ```text
 a2a_adapter/

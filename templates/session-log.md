@@ -14,12 +14,7 @@ Hermes commit/version:
 ## What I learned
 
 
-## Call chain / flow
-
-```mermaid
-flowchart LR
-    A[Start] --> B[End]
-```
+## Call chain / invariants
 
 ## Verification
 
