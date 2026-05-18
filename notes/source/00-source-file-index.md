@@ -4,6 +4,8 @@
 
 所有路径相对于 `~/opensource/hermes-agent/`。
 
+最后校验：2026-05-18，使用 `wc -l` 与 `rg -n` 对关键入口、函数和 LOC 做只读抽查。
+
 ---
 
 ## 1. 入口与启动链路
@@ -22,7 +24,7 @@
 
 | 文件 | LOC | 职责 |
 |------|-----|------|
-| `gateway/run.py` | ~1,800 | `GatewayRunner`，多平台事件路由 |
+| `gateway/run.py` | 16,858 | `GatewayRunner`，多平台事件路由、session 路由、agent 创建/复用 |
 | `gateway/platforms/base.py` | — | Platform adapter interface |
 | `gateway/platforms/webhook.py` | — | 简单 adapter 参考实现 |
 | `gateway/platforms/api_server.py` | — | API Server adapter |
@@ -133,7 +135,7 @@
 
 | 文件 | LOC | 关键函数 | 说明 |
 |------|-----|---------|------|
-| `agent/prompt_builder.py` | 1,456 | `build_system_prompt()`, `load_soul_md()` | SOUL.md + MEMORY.md + context files 组装 |
+| `agent/prompt_builder.py` | 1,456 | `build_skills_system_prompt()`, `load_soul_md()`, `build_context_files_prompt()` | SOUL.md、context files、skills index 组装 |
 | `agent/skill_commands.py` | 501 | skill 命令解析与运行时 skill 内容注入 | `/skill` 加载完整内容后作为 user message 注入 |
 | `agent/context_compressor.py` | 1,583 | — | 长对话压缩 |
 
@@ -207,3 +209,27 @@
 | `tests/` | ~17k tests across ~900 files |
 | `tests/test_*tool*.py` | Tool 相关测试 |
 | `tests/acp/` | ACP adapter 测试 |
+
+---
+
+## 11. 验证记录
+
+本索引用下面的只读命令校验关键源码锚点：
+
+```bash
+wc -l /home/shq/opensource/hermes-agent/cli.py \
+  /home/shq/opensource/hermes-agent/gateway/run.py \
+  /home/shq/opensource/hermes-agent/acp_adapter/server.py \
+  /home/shq/opensource/hermes-agent/run_agent.py \
+  /home/shq/opensource/hermes-agent/agent/prompt_builder.py \
+  /home/shq/opensource/hermes-agent/agent/skill_commands.py
+
+rg -n "class AIAgent|def run_conversation|def chat\\(|def _invoke_tool|def _compress_context|def _persist_session|def interrupt\\(" \
+  /home/shq/opensource/hermes-agent/run_agent.py
+
+rg -n "def build_skills_system_prompt|def load_soul_md|def build_context_files_prompt|def _build_skill_message" \
+  /home/shq/opensource/hermes-agent/agent/prompt_builder.py \
+  /home/shq/opensource/hermes-agent/agent/skill_commands.py
+```
+
+校验结论：AIAgent 主循环锚点、prompt/skill 关键函数和核心入口 LOC 均已重新对齐；本索引仍是快速定位表，不替代专题笔记中的调用链解释。

@@ -28,12 +28,13 @@ make new-log TITLE=repo-orientation
 make open-plan
 ```
 
-然后按 `LEARNING_PLAN.md` 从 Phase 0 开始推进。每次学习都要求产出：
+然后按 `LEARNING_PLAN.md` 从 Phase 0 开始推进。每次学习都要求留下可追踪证据：
 
-1. 一份 session log；
-2. 一份源码阅读笔记或设计笔记；
-3. 一个小 commit；
-4. 一个可验证动作：测试、脚本、复现、最小 patch、设计草案之一。
+1. 一份源码阅读笔记或设计笔记；
+2. 一个小 commit；
+3. 一个可验证动作：测试、脚本、复现、最小 patch、设计草案之一。
+
+`journal/` 是学习证据的一种，不是强制长文。如果 commit message 已经清楚记录目标、变更、验证和接续点，journal 可以省略；如果本次学习产生了未解决问题、被否定的假设、探索路径或下一次接续点，写一份短 journal。
 
 ## Agent 自学 Workflow
 
@@ -45,7 +46,7 @@ make open-plan
 4. 每个重要结论都落到具体文件、函数、调用链或测试，不写脱离源码的概念总结。
 5. 需要可视化时自然选择表达方式：Mermaid、ASCII、表格或文字都可以。图要服务解释，不能替代解释；用了图就配文字说明它回答什么问题、揭示什么结论。Mermaid 图参考 `beautiful-mermaid` 的清晰和可读原则：`https://github.com/lukilabs/beautiful-mermaid`。
 6. 至少做一个验证动作，例如 `rg` 锚点检查、只读脚本、现有测试、fixture 检查或测试设计。
-7. 更新 `journal/`，并新增或完善一份 `notes/source/` 或 `notes/design/`；新增笔记时同步更新 `notes/INDEX.md`。
+7. 新增或完善一份 `notes/source/` 或 `notes/design/`；新增笔记时同步更新 `notes/INDEX.md`。需要保留探索过程或接续点时，再写短 journal。
 8. 结尾留下下一次最自然的继续点。
 
 ## 仓库布局
@@ -57,7 +58,7 @@ make open-plan
 ├── ROADMAP_A2A.md                 # 让 Hermes 支持 A2A 的实现路线
 ├── RULES.md                       # 学习与贡献规则
 ├── AGENTS.md                      # 给 Hermes/AI 助手的项目上下文
-├── journal/                       # 每次学习记录
+├── journal/                       # 必要时记录探索过程、疑问和接续点
 ├── notes/source/                  # 源码精读笔记
 ├── notes/design/                  # 设计草案和 ADR
 ├── checklists/                    # 阶段验收清单

@@ -10,6 +10,8 @@
 
 ## 一、分层架构图
 
+这张图回答一个问题：Hermes 的不同入口最后如何汇合到同一个执行内核，以及核心循环依赖哪些共享层。读图时重点看 `AIAgent` 位于中间，入口层只负责适配输入/输出，工具、prompt、持久化和后端扩展都挂在共享核心之后。
+
 ```mermaid
 graph TB
     subgraph entry["🚪 入口层 Entry Points"]
@@ -18,7 +20,6 @@ graph TB
         ACP["ACP<br/>acp_adapter/"]
         CRON["Cron<br/>cron/scheduler.py"]
         BATCH["Batch<br/>batch_runner.py"]
-        MCP["MCP"]
     end
 
     subgraph orchestrate["🎛️ 编排层 Orchestration"]
@@ -96,6 +97,8 @@ graph TB
     style backend fill:#44403c,stroke:#a8a29e,color:#eee
 ```
 
+读图结论：A2A 后续不应该成为第六套 agent loop，而应该像 Gateway/ACP 一样新增协议适配层，复用 `AIAgent`、`model_tools.py`、prompt builder 和 SessionDB 等共享层。MCP 在 Hermes 中更像工具互操作和服务暴露能力，归在后端扩展层更准确，不作为本文的主要运行入口。
+
 ---
 
 ## 二、程序入口（五种运行形态）
@@ -121,7 +124,7 @@ Telegram/Discord/Feishu/... → gateway/platforms/*.py → MessageEvent
   → gateway/delivery.py → 平台 adapter 发回响应
 ```
 
-- **入口文件**：`gateway/run.py`（~1800 LOC）
+- **入口文件**：`gateway/run.py`（16,858 LOC）
 - **关键类**：`GatewayRunner`，管理完整生命周期
 - **平台适配器**：20+ 个，位于 `gateway/platforms/`
   - `telegram.py`, `discord.py`, `feishu.py`, `slack.py`, `whatsapp.py`
@@ -171,6 +174,8 @@ batch_runner.py → 并行启动多个 AIAgent 实例 → 批量处理任务
 
 ## 三、一条请求的完整旅程（CLI 路径）
 
+这张图专门解释最常见的 CLI 路径：用户输入如何进入 `AIAgent.chat()` / `run_conversation()`，以及 prompt、tool loop、持久化分别在哪些阶段参与。它不是完整状态机，而是读 `run_agent.py` 前的主干地图。
+
 ```mermaid
 graph TD
     U["👤 用户输入"] --> CMD["HermesCLI.process_command()"]
@@ -179,7 +184,7 @@ graph TD
 
     RC --> PROMPT["Prompt 组装"]
     subgraph prompt_build["Prompt 组装"]
-        PB["prompt_builder.build_system_prompt()<br/>SOUL.md + MEMORY + USER.md + .hermes.md"]
+        PB["AIAgent._build_system_prompt_parts()<br/>prompt_builder + memory snapshot + context files"]
         SC["skill_commands.build_skills_system_prompt()<br/>skill index"]
         MT["model_tools.get_tool_definitions()<br/>toolsets → registry → schemas"]
         CH["conversation_history"]
@@ -219,6 +224,8 @@ graph TD
     style post fill:#312e81,stroke:#818cf8,color:#eee
 ```
 
+读图结论：CLI 路径的关键分界是“API 调用前的 prompt/tool schema 准备”和“LLM 返回 tool_calls 后的工具执行循环”。后续读 `run_agent.py` 时应该沿 `chat()` → `run_conversation()` → `_invoke_tool()` → `_persist_session()` 这样的切片读，而不是线性读完整文件。
+
 ---
 
 ## 四、核心模块速查表
@@ -237,8 +244,9 @@ graph TD
 
 | 模块 | 关键文件 | LOC | 职责 |
 |------|---------|-----|------|
-| **Prompt Builder** | `agent/prompt_builder.py` | 1,456 | 组装 system prompt：SOUL.md + MEMORY.md + context files + skills |
-| **Skill Commands** | `agent/skill_commands.py` | — | skill index 注入 system prompt |
+| **Prompt Builder** | `agent/prompt_builder.py` | 1,456 | 组装 prompt 组件：SOUL.md、context files、skills index、environment hints |
+| **Skill Index** | `agent/prompt_builder.py` | 1,456 | `build_skills_system_prompt()` 生成 system prompt 中的 skill 索引 |
+| **Skill Commands** | `agent/skill_commands.py` | 501 | `/skill` 运行时命令，把完整 skill 内容作为 user message 注入 |
 | **Context Compressor** | `agent/context_compressor.py` | 1,583 | 长对话压缩策略 |
 
 ### 4.3 持久化与 Memory
@@ -247,7 +255,7 @@ graph TD
 |------|---------|-----|------|
 | **SessionDB** | `hermes_state.py` | 2,966 | SQLite 存储：sessions、messages、FTS5 全文搜索 |
 | **Trajectory Compressor** | `trajectory_compressor.py` | — | 对话轨迹压缩 |
-| **Memory Tool** | `tools/memory_tool.py` | — | 用户可控的持久化记忆读写 |
+| **Memory Tool** | `tools/memory_tool.py` | 586 | 用户可控的持久化记忆读写 |
 
 ### 4.4 Gateway 层
 
@@ -297,13 +305,13 @@ graph TD
 |------|--------|-----|------|
 | 执行内核 (`run_agent.py`) | 1 | 16,083 | 单体核心，对话循环 |
 | CLI (`cli.py`) | 1 | 13,809 | CLI 交互编排 |
-| Agent 内部 (`agent/`) | ~25 | 37,450 | provider adapter、prompt、memory、display |
-| 工具 (`tools/`) | 73+ | ~15,000 | 每个工具一个文件 |
-| Gateway (`gateway/`) | 53 | ~10,000 | 20+ 平台适配器 + session + delivery |
+| Agent 内部 (`agent/`) | ~25 | 44,944 | provider adapter、prompt、memory、display |
+| 工具 (`tools/`) | 76 | 59,810 | 每个工具一个文件，含环境、browser、MCP、approval 等 |
+| Gateway (`gateway/`) | 53 | 81,779 | 20+ 平台适配器 + session + delivery |
 | ACP 适配器 (`acp_adapter/`) | 9 | 4,035 | 协议适配层 |
 | Cron | 3 | 2,976 | 定时调度 |
 | 状态 (`hermes_state.py`) | 1 | 2,966 | SessionDB |
-| **总计（Python）** | — | **815,448** | 含 tests、plugins、网站等 |
+| **总计（Python）** | — | **816,956** | 含 tests、plugins、网站等 |
 
 ---
 
@@ -320,6 +328,8 @@ graph TD
 ---
 
 ## 七、A2A 在架构中的位置
+
+这张图回答 A2A 的架构落点：它应该与现有入口平级，而不是插入或改写 `AIAgent.run_conversation()`。图中只保留会影响 A2A 设计的入口和核心循环，省略 prompt/tool/persistence 细节。
 
 ```mermaid
 graph TB
@@ -394,7 +404,7 @@ Step 6: ACP Adapter（A2A 直接参考对象）
 | 3 | Prompt 分层组装的优先级体系 | `agent/prompt_builder.py` | ★★ | stable/context/volatile 三层 + context file priority (.hermes.md > AGENTS.md > ...)，叠加 prompt_caching 标记。优先级规则决定最终 LLM 看到什么 |
 | 4 | Gateway 多路复用与 Session 路由 | `gateway/run.py` | ★★ | 异步多路事件、session key 路由、active-agent guard、hook 执行。20+ 平台适配器的生命周期管理 |
 | 5 | ACP 同步/异步桥接 | `acp_adapter/server.py` | ★★ | AIAgent 在 worker thread 中同步运行，通过 asyncio.run_coroutine_threadsafe 转为异步事件。stdout/stderr 分离。理解这个桥接是理解 ACP 的核心 |
-| 6 | Tool 审批链与安全模型 | `tools/approval.py` | ★★ | 1369 行，四级审批（auto/suggest/confirm/deny），动态环境检测（Docker/SSH/Modal），与 platform 的 permission 映射 |
+| 6 | Tool 审批链与安全模型 | `tools/approval.py` | ★★ | 1369 行，hardline/sudo/dangerous/yolo guard 与 smart/manual approval 交织，和 platform permission 映射相关 |
 | 7 | Context Compression 策略 | `agent/context_compressor.py` | ★ | 1583 行，多种压缩策略（summary/trim/trajectory），何时触发、如何保留关键信息 |
 | 8 | Toolset resolve 递归展开 | `toolsets.py` | ★ | composite toolset 可以嵌套引用，resolve 时递归展开。理解递归终止条件和平台 preset 覆盖 |
 
@@ -406,9 +416,9 @@ Step 6: ACP Adapter（A2A 直接参考对象）
 
 AIAgent 是 Hermes 的执行内核，核心方法之间共享大量实例状态（messages、tool registry、session、compression state）。拆成独立类会增加状态传递复杂度，而 Python 的 module 本身就是天然的命名空间。实际阅读时按调用链切片（chat → run_conversation → _invoke_tool），不需要从头到尾线性读。
 
-**Q: 为什么 Tool 注册用 AST 而不是直接 import 调用？**
+**Q: 为什么 Tool discovery 先用 AST 预扫描，而不是直接 import 所有 `tools/*.py`？**
 
-AST 自发现允许在 import 阶段提取 handler 的参数签名和 docstring，生成精确的 tool schema，无需运行时反射或手写 JSON Schema。代价是注册代码不能有运行时动态逻辑，必须在 top-level 直接调用 `registry.register()`。
+AST 预扫描只判断一个模块顶层是否调用 `registry.register()`，用来筛掉非工具辅助模块，减少 import 副作用和重依赖加载风险。真正的 schema 仍由各工具在 top-level `registry.register()` 时显式传入；代价是注册代码需要保持在模块顶层，不能藏在运行时分支或函数体里。
 
 **Q: 为什么 `model_tools.py` 是 AIAgent 和 Tool 系统之间的唯一中介？**
 
@@ -429,3 +439,33 @@ AIAgent.run_conversation() 内部使用了阻塞 I/O（SQLite 写入、文件操
 - Tool System 全链路详解见 `01-tool-system-full-chain.md`
 - Prompt Assembly 详解见 `02-prompt-assembly.md`
 - 代码证据索引见 `00-source-file-index.md`
+
+## 十二、验证记录
+
+本轮修订用只读命令重新校验了架构笔记中的关键源码事实：
+
+```bash
+wc -l /home/shq/opensource/hermes-agent/cli.py \
+  /home/shq/opensource/hermes-agent/gateway/run.py \
+  /home/shq/opensource/hermes-agent/acp_adapter/entry.py \
+  /home/shq/opensource/hermes-agent/acp_adapter/server.py \
+  /home/shq/opensource/hermes-agent/cron/scheduler.py \
+  /home/shq/opensource/hermes-agent/cron/jobs.py \
+  /home/shq/opensource/hermes-agent/batch_runner.py \
+  /home/shq/opensource/hermes-agent/run_agent.py \
+  /home/shq/opensource/hermes-agent/model_tools.py \
+  /home/shq/opensource/hermes-agent/toolsets.py \
+  /home/shq/opensource/hermes-agent/hermes_state.py \
+  /home/shq/opensource/hermes-agent/agent/prompt_builder.py \
+  /home/shq/opensource/hermes-agent/agent/context_compressor.py \
+  /home/shq/opensource/hermes-agent/tools/registry.py \
+  /home/shq/opensource/hermes-agent/tools/approval.py \
+  /home/shq/opensource/hermes-agent/tools/terminal_tool.py
+
+rg -n "class GatewayRunner|def _handle_message|def _handle_message_with_agent|def _run_agent|run_conversation|class HermesCLI|def process_command|class CronScheduler" \
+  /home/shq/opensource/hermes-agent/cli.py \
+  /home/shq/opensource/hermes-agent/gateway/run.py \
+  /home/shq/opensource/hermes-agent/cron/scheduler.py
+```
+
+校验结果：`gateway/run.py` 当前为 16,858 行；`HermesCLI`、`GatewayRunner`、`CronScheduler` 与多个 `run_conversation` 调用点均能在源码中定位。本文中的 LOC 表和入口说明已按这些结果修正。

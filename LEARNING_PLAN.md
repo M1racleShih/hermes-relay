@@ -32,7 +32,7 @@ flowchart LR
 
 | artifact | 存放位置 | 标准 |
 |---|---|---|
-| 学习日志 | `journal/YYYY-MM-DD-*.md` | 记录本次目标、源码位置、结论、疑问、下一步 |
+| 学习日志 | `journal/YYYY-MM-DD-*.md` | 可选；当 commit message 不足以承载探索过程、疑问、被否定假设或下一步时，用短 journal 补充 |
 | 源码笔记 | `notes/source/*.md` | 至少包含入口、关键函数、数据结构、调用链、风险点；复杂流程可用 Mermaid、ASCII、表格或文字结构辅助说明 |
 | ADR/设计草案 | `notes/design/*.md` | 涉及架构选择时必须写决策记录；协议或状态关系复杂时配可视化说明 |
 | 验证动作 | commit / test / script | 每次学习至少一个可验证动作 |
