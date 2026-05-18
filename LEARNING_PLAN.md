@@ -4,6 +4,8 @@
 
 默认前提：你 Python 能力足够强，且已经安装并长期使用 Hermes。因此本计划不花时间讲 Python 基础、安装配置和普通 CLI 使用。
 
+本计划不以“读完整个 Hermes 仓库每一行源码”为目标。Hermes 的源码规模很大，完整掌握所有 plugin、platform adapter、tests、skills、packaging 是长期维护者工作。本计划优先掌握主干调用链、不变量、扩展边界和 PR 风险判断；非主干区域按 A2A 或具体贡献任务需要再深入。
+
 ## 总体策略
 
 不要从 `run_agent.py` 直接开始。它是核心，但不是入口。更好的路线是：
@@ -19,12 +21,23 @@ flowchart LR
     G --> H[A2A MVP PR]
 ```
 
+里程碑语义：
+
+| 阶段 | 能力目标 | 含义 |
+|---|---|---|
+| Phase 0-2 | 基础主干 | 能读懂架构、tool、prompt 这些局部核心模块 |
+| Phase 3-6 | 核心开发 readiness | 能开始做有边界的 Hermes 核心开发；Phase 6 的 ACP 是 A2A 最重要参考 |
+| Phase 7-8 | A2A 设计 readiness | 补齐 provider/auth 和 A2A protocol mapping，降低设计误判 |
+| Phase 9-10 | 毕业设计 | 用 A2A spike/MVP PR 设计验证真实开发能力 |
+
 理由：
 
 - 工具体系最容易形成“源码 -> 行为 -> 测试”的闭环；
 - Prompt 与 Tool 是理解 Agent Loop 的前置知识；
 - Gateway/ACP 是实现 A2A 的直接参考范式；
 - A2A 需要的是“协议适配层 + session/task 映射 + callback/stream bridge + auth/permission bridge”，不是直接改大模型调用逻辑。
+
+注意：如果只学到 Gateway（当前 Phase 5），还没有完成 A2A 的最关键参考实现。真正的“可以开始有边界核心开发”的 checkpoint 应放在 Phase 6 之后。
 
 ## 学习产出规则
 
@@ -374,6 +387,8 @@ toolsets.py
 
 目标：理解 provider runtime 只是模型调用的共享解析层，不应让 A2A 复制认证/模型选择逻辑。
 
+从 Phase 7 开始，学习重点从“看懂主干”转为“降低真实 PR 风险”。这些阶段不是可有可无的补课，而是为了避免 A2A 设计在 provider/auth、协议对象、安全边界和测试拆分上走偏。
+
 重点源码：
 
 ```text
@@ -540,6 +555,13 @@ PR 前必须有：
 ## 核心开发者能力检查表
 
 当下面这些你都能做到，就基本达到了“可以参与核心开发”的水平：
+
+阶段定位：
+
+- Phase 0-2 完成：能看懂局部核心模块；
+- Phase 3-6 完成：能开始做有边界的 Hermes 核心开发；
+- Phase 7-8 完成：能写出较靠谱的 A2A 设计；
+- Phase 9-10 完成：用 A2A 毕业设计验证开发能力。
 
 - [ ] 能从 issue 快速定位它属于 CLI / Gateway / ACP / Tools / Agent / Provider / State / Skill 的哪一层；
 - [ ] 能在不读完全仓库的情况下画出涉及模块的调用链；

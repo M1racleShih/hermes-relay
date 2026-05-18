@@ -43,4 +43,6 @@
 - **Phase 0**：✅ 完成（repo map + 代码证据索引 + 架构总览）
 - **Phase 1**：✅ 完成（Tool System 全链路，已补图文说明）
 - **Phase 2**：✅ 完成（Prompt Assembly，已按源码修正 skills 缓存描述）
-- **Phase 3+**：待开始
+- **Phase 3-6**：下一里程碑，目标是 core development readiness（AIAgent loop、state/memory、Gateway、ACP）
+- **Phase 7-8**：A2A design readiness（provider/runtime policy + protocol mapping）
+- **Phase 9-10**：A2A 毕业设计（spike + MVP PR design）

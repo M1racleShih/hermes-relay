@@ -104,6 +104,8 @@ flowchart TB
 
 ## 推荐阅读顺序
 
+这条路径服务于“先掌握主干，再带着 A2A 目标继续读源码”。Gateway 和 ACP 应作为一组理解：Gateway 解释多平台消息与 session routing，ACP 解释协议适配层如何包装同步 `AIAgent`，其中 ACP 是 A2A 最直接的实现参考。
+
 ```mermaid
 flowchart LR
     A[README + CONTRIBUTING + Architecture docs] --> B[tools/registry.py]
@@ -116,6 +118,12 @@ flowchart LR
     H --> I[acp_adapter/session/events/server]
     I --> J[A2A design]
 ```
+
+阶段 checkpoint：
+
+- `tools/registry.py` 到 `agent/prompt_builder.py`：基础主干；
+- `run_agent.py` slices 到 `acp_adapter/`：核心开发 readiness；
+- A2A design 之后：进入协议设计和 spike，不代表源码学习结束。
 
 ## 不要一开始深挖的区域
 
